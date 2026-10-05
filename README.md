@@ -96,18 +96,18 @@ Kurulum adımlarını tekrar yapmanıza gerek yok. Sadece:
 ## Prototipi kullanırken bilmeniz gerekenler
 
 - **Rol değiştirme:** Uygulama **İK** rolüyle açılır. Sağ üstteki isme tıklayarak **Kulüp Müdürü** veya **Sistem Yöneticisi** görünümüne geçebilirsiniz. Bazı ekranlar (Onay Talepleri, toplu işlemler, mülakat planlama) yalnızca İK'da görünür.
-- **Veriler örnektir:** Yaklaşık 220 örnek kişi (aday, akademi eğitmeni, eğitmen, süreci biten) ve geçmiş akademiler yüklüdür.
+- **Veriler örnektir:** Yaklaşık 215 örnek kişi (aday, akademi eğitmeni, eğitmen, süreci biten) ve geçmiş akademiler yüklüdür.
 - **Yaptığınız işlemler kaydedilmez:** Sayfayı yenilediğinizde (Mac: `Cmd + R`, Windows: `F5`) her şey başlangıç haline döner. Deneme yaparken bir şey bozulursa sayfayı yenilemeniz yeterlidir.
 
 ### Göz atabileceğiniz başlıca ekranlar
 
 | Menü | Ne gösterir |
 |---|---|
-| **Aday Süreci → Eğitmenler** | Aday, akademi, aktif ve süreci biten herkes; özet kartlar filtre gibi çalışır. Bir kişiye tıklayınca profil ve **Sonraki Aksiyon** kartı açılır. |
+| **Aday Süreci → Eğitmenler** | Aday, akademi, aktif ve pasif eğitmenler; özet kartlar filtre gibi çalışır. Bir kişiye tıklayınca profil, **Sonraki Aksiyon** kartı ve (eğitmenlerde) kulüp / sözleşme değişikliği ve işten çıkış işlemleri açılır. |
 | **Aday Süreci → Onay Talepleri** | Kulüp müdürlerinin gönderdiği belge, davet, sertifika, vize, temel eğitim ve ihtar onayları (İK). |
 | **Akademi** | Akademi dönemleri, doluluk, yoklama ve sınav sonuçları. |
 | **Eğitmen Karne** | Karneden çıkarılan / ligi sabitlenen eğitmenler, GX stüdyo sayıları, metrik limitleri. |
-| **Toplu İşlemler** | Toplu aday ekleme, toplu mülakat sonucu, toplu sınav sonucu (Excel), toplu eğitmenliğe geçiş, toplu vizeletme. |
+| **Toplu İşlemler** | Toplu aday ekleme, toplu akademi mülakatı sonucu, toplu akademi sınav sonucu (Excel), toplu temel eğitim sonucu (tablo veya Excel), toplu eğitmenliğe geçiş, toplu vizeletme. |
 | **Raporlama** | Filtre ekleyip kolon seçerek esnek rapor oluşturma ve Excel indirme. |
 | **Bildirimler** | Onay talepleri ve vize uyarıları (30 gün / 7 gün kala / bitiş günü). |
 

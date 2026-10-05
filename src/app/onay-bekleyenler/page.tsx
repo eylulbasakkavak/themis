@@ -3,7 +3,19 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Check, Eye, FileText, Inbox, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Award,
+  BookOpen,
+  Check,
+  Eye,
+  FileText,
+  GraduationCap,
+  Inbox,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/Badge";
 import { useAdaylar } from "@/lib/AdaylarContext";
 import { akademiDavetiOnayKaydi, kontenjanDoluMu } from "@/lib/akademi";
@@ -34,6 +46,50 @@ const DURUM_SEKMELERI: { deger: Durum; label: string }[] = [
 
 type TalepKaynagi =
   "belge-seti" | "akademi-daveti" | "kademe-sertifikasi" | "vize" | "temel-egitim" | "ihtar";
+
+/** Satırlarda gösterilen talep türü: kısa ad, ikon ve ikon rengi. */
+const KAYNAK_BILGI: Record<
+  TalepKaynagi,
+  { ad: string; ikon: typeof FileText; renk: string; varsayilanOzet: string }
+> = {
+  "belge-seti": {
+    ad: "Belge Seti",
+    ikon: FileText,
+    renk: "bg-sky-50 text-sky-600",
+    varsayilanOzet:
+      "İkinci belge seti (adli sicil, öğrenim durumu, fiziki oryantasyon) onaya gönderildi",
+  },
+  "akademi-daveti": {
+    ad: "Akademi Daveti",
+    ikon: GraduationCap,
+    renk: "bg-violet-50 text-violet-600",
+    varsayilanOzet: "Akademi davet bilgileri onaya gönderildi",
+  },
+  "kademe-sertifikasi": {
+    ad: "Kademe Belgesi",
+    ikon: Award,
+    renk: "bg-amber-50 text-amber-600",
+    varsayilanOzet: "Yeni kademe belgesi yüklendi",
+  },
+  vize: {
+    ad: "Vize",
+    ikon: ShieldCheck,
+    renk: "bg-emerald-50 text-emerald-600",
+    varsayilanOzet: "Vize bilgisi girildi",
+  },
+  "temel-egitim": {
+    ad: "Temel Eğitim",
+    ikon: BookOpen,
+    renk: "bg-indigo-50 text-indigo-600",
+    varsayilanOzet: "Temel eğitim sonucu girildi",
+  },
+  ihtar: {
+    ad: "İhtar",
+    ikon: AlertTriangle,
+    renk: "bg-rose-50 text-rose-600",
+    varsayilanOzet: "İhtar kaydı girildi",
+  },
+};
 
 type Talep = {
   id: string;
@@ -123,6 +179,12 @@ export default function OnayBekleyenlerPage() {
           kaynak: "akademi-daveti",
           belge: { ad: "Akademi Daveti Onayı", durum: "yuklendi", tarih: "Bugün" },
           tip: "Akademi Daveti Onayı",
+          ozet: (() => {
+            const d = donemler.find((x) => x.id === a.akademiDonemiId);
+            return d
+              ? `${d.ad} · başlangıç ${d.baslangicTarihi} · konaklama: ${a.bmOnayliKonaklama ?? "—"}`
+              : undefined;
+          })(),
           hedefTab: "akademi-sinav",
           durum: "bekleyen",
           gonderen,
@@ -216,7 +278,7 @@ export default function OnayBekleyenlerPage() {
     }
 
     return liste;
-  }, [adaylar]);
+  }, [adaylar, donemler]);
 
   // Aday detay sayfasındaki "Onay Talepleri'nde İncele" linkinden dönüldüğünde, ilgili
   // talebi doğrudan popup olarak açar — onay mekanizması yalnızca burada var. Bu sayfaya
@@ -233,7 +295,10 @@ export default function OnayBekleyenlerPage() {
   const davetAkademisiDolu = !!davetAkademisi && kontenjanDoluMu(davetAkademisi);
 
   const gruplar = {
-    bekleyen: talepler.filter((t) => t.durum === "bekleyen"),
+    // En yeni talep en üstte.
+    bekleyen: talepler
+      .filter((t) => t.durum === "bekleyen")
+      .sort((x, y) => tarihSirasi(y.belge.tarih) - tarihSirasi(x.belge.tarih)),
     // Eski onaylı kayıtların hepsi gösterilmez; en yeni 250 onay listelenir.
     onaylanan: talepler
       .filter((t) => t.durum === "onaylanan")
@@ -241,7 +306,12 @@ export default function OnayBekleyenlerPage() {
       .slice(0, ONAYLANAN_GOSTERIM_SINIRI),
     reddedilen: talepler.filter((t) => t.durum === "reddedilen"),
   };
-  const rows = gruplar[durum];
+  const [turFiltresi, setTurFiltresi] = useState<TalepKaynagi | null>(null);
+  const durumdakiler = gruplar[durum];
+  const rows = turFiltresi ? durumdakiler.filter((t) => t.kaynak === turFiltresi) : durumdakiler;
+  const turSayilari = (Object.keys(KAYNAK_BILGI) as TalepKaynagi[])
+    .map((k) => ({ kaynak: k, sayi: durumdakiler.filter((t) => t.kaynak === k).length }))
+    .filter((x) => x.sayi > 0);
 
   useEffect(() => {
     if (!vurgulananId) return;
@@ -427,7 +497,10 @@ export default function OnayBekleyenlerPage() {
         {DURUM_SEKMELERI.map((s) => (
           <button
             key={s.deger}
-            onClick={() => setDurum(s.deger)}
+            onClick={() => {
+              setDurum(s.deger);
+              setTurFiltresi(null);
+            }}
             className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
               durum === s.deger
                 ? "border-brand bg-brand-soft text-brand"
@@ -442,51 +515,92 @@ export default function OnayBekleyenlerPage() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-2">
-        {rows.map((t) => (
-          <button
-            key={t.id}
-            ref={(el) => {
-              kartRefleri.current[t.id] = el;
-            }}
-            onClick={() => setAcikTalep(t)}
-            className={`flex items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 text-left shadow-sm transition-colors hover:bg-zinc-50 ${
-              t.aday.id === vurgulananId ? "border-brand ring-2 ring-brand/30" : "border-zinc-200"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white">
-                {t.aday.ad[0]}
-                {t.aday.soyad[0]}
-              </span>
-              <div>
-                <span className="font-medium text-zinc-900">
-                  {t.aday.ad} {t.aday.soyad}
-                </span>
-                <p className="mt-0.5 text-xs text-zinc-400">{t.aday.kulup}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge
-                label={t.tip}
-                tone={
-                  t.durum === "onaylanan" ? "green" : t.durum === "reddedilen" ? "red" : "orange"
-                }
-              />
-              <ArrowRight className="h-4 w-4 text-zinc-300" />
-            </div>
-          </button>
-        ))}
+      {turSayilari.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {turSayilari.map(({ kaynak, sayi }) => {
+            const b = KAYNAK_BILGI[kaynak];
+            const secili = turFiltresi === kaynak;
+            return (
+              <button
+                key={kaynak}
+                onClick={() => setTurFiltresi(secili ? null : kaynak)}
+                aria-pressed={secili}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  secili
+                    ? "border-zinc-900 bg-zinc-900 text-white"
+                    : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                }`}
+              >
+                <b.ikon className="h-3.5 w-3.5" />
+                {b.ad}
+                <span className="opacity-60">{sayi}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-        {rows.length === 0 && (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-14 text-center text-sm text-zinc-400 shadow-sm">
-            <Inbox className="h-6 w-6 text-zinc-300" />
-            {durum === "bekleyen" && "Onay bekleyen talep bulunmuyor."}
-            {durum === "onaylanan" && "Onaylanan talep bulunmuyor."}
-            {durum === "reddedilen" && "Reddedilen talep bulunmuyor."}
-          </div>
-        )}
-      </div>
+      {rows.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-14 text-center text-sm text-zinc-400 shadow-sm">
+          <Inbox className="h-6 w-6 text-zinc-300" />
+          {durum === "bekleyen" && "Onay bekleyen talep bulunmuyor."}
+          {durum === "onaylanan" && "Onaylanan talep bulunmuyor."}
+          {durum === "reddedilen" && "Reddedilen talep bulunmuyor."}
+        </div>
+      ) : (
+        <div className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          {rows.map((t) => {
+            const b = KAYNAK_BILGI[t.kaynak];
+            const vurgulu = t.aday.id === vurgulananId;
+            return (
+              <button
+                key={t.id}
+                ref={(el) => {
+                  kartRefleri.current[t.id] = el;
+                }}
+                onClick={() => setAcikTalep(t)}
+                className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50 ${
+                  vurgulu ? "bg-brand-soft/40" : ""
+                }`}
+              >
+                <span
+                  className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${b.renk}`}
+                >
+                  <b.ikon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-sm">
+                    {t.durum === "bekleyen" && (
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+                    )}
+                    <span className="font-semibold text-zinc-900">{b.ad}</span>
+                    <span className="text-zinc-300">·</span>
+                    <span className="truncate font-medium text-zinc-700">
+                      {t.aday.ad} {t.aday.soyad}
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block truncate text-sm text-zinc-500">
+                    {t.ozet ?? b.varsayilanOzet}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-zinc-400">
+                    {t.aday.kulup} · {t.gonderen}
+                    {t.belge.tarih && t.belge.tarih !== "Bugün" ? ` · ${t.belge.tarih}` : ""}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2 self-center">
+                  {t.durum !== "bekleyen" && (
+                    <Badge
+                      label={t.durum === "onaylanan" ? "Onaylandı" : "Reddedildi"}
+                      tone={t.durum === "onaylanan" ? "green" : "red"}
+                    />
+                  )}
+                  <ArrowRight className="h-4 w-4 text-zinc-300" />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {acikTalep && (
         <div
@@ -494,70 +608,77 @@ export default function OnayBekleyenlerPage() {
           onClick={talebiKapat}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-900">Talep Detayı</h3>
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-zinc-900">Talep Detayı</h3>
               <button onClick={talebiKapat} className="text-zinc-400 hover:text-zinc-600">
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
             </div>
-            <div className="flex flex-col gap-3 text-sm">
-              <div>
-                <div className="text-xs text-zinc-400">Talep Tipi</div>
-                <div className="mt-0.5 font-medium text-zinc-800">{acikTalep.tip}</div>
+            <div className="flex flex-col gap-5 text-base">
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <div className="text-sm text-zinc-400">Talep Tipi</div>
+                  <div className="mt-1 text-base font-semibold text-zinc-900">{acikTalep.tip}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-zinc-400">Talebi Oluşturan</div>
+                  <div className="mt-1 text-base font-semibold text-zinc-900">
+                    {acikTalep.gonderen}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-zinc-400">Kulüp</div>
+                  <div className="mt-1 text-base font-semibold text-zinc-900">
+                    {acikTalep.aday.kulup}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-zinc-400">Eğitmen</div>
+                  <Link
+                    href={`/adaylar/${acikTalep.aday.id}?tab=${acikTalep.hedefTab}&donus=onay-bekleyenler&talep=${acikTalep.id}`}
+                    className="mt-1 flex items-center gap-1.5 text-base font-semibold text-brand hover:underline"
+                  >
+                    {acikTalep.aday.ad} {acikTalep.aday.soyad}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
               </div>
               {acikTalep.ozet && (
                 <div>
-                  <div className="text-xs text-zinc-400">Ayrıntı</div>
-                  <div className="mt-0.5 font-medium text-zinc-800">{acikTalep.ozet}</div>
+                  <div className="text-sm text-zinc-400">Ayrıntı</div>
+                  <div className="mt-1 rounded-xl bg-zinc-50 px-4 py-3 text-base font-medium text-zinc-800">
+                    {acikTalep.ozet}
+                  </div>
                 </div>
               )}
-              <div>
-                <div className="text-xs text-zinc-400">Talebi Oluşturan</div>
-                <div className="mt-0.5 font-medium text-zinc-800">{acikTalep.gonderen}</div>
-              </div>
-              <div>
-                <div className="text-xs text-zinc-400">Kulüp</div>
-                <div className="mt-0.5 font-medium text-zinc-800">{acikTalep.aday.kulup}</div>
-              </div>
-              <div>
-                <div className="text-xs text-zinc-400">Eğitmen</div>
-                <Link
-                  href={`/adaylar/${acikTalep.aday.id}?tab=${acikTalep.hedefTab}&donus=onay-bekleyenler&talep=${acikTalep.id}`}
-                  className="mt-0.5 flex items-center gap-1.5 font-medium text-brand hover:underline"
-                >
-                  {acikTalep.aday.ad} {acikTalep.aday.soyad}
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-
               {acikTalep.kaynak === "belge-seti" ? (
                 <div className="mt-1 flex flex-col gap-2">
-                  <div className="text-xs text-zinc-400">Belgeler</div>
+                  <div className="text-sm text-zinc-400">Belgeler</div>
                   <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-100">
                     {acikTalep.aday.ikinciBelgeSeti.map((b) => (
-                      <div key={b.ad} className="flex items-center justify-between gap-3 px-3 py-2">
+                      <div key={b.ad} className="flex items-center justify-between gap-3 px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-3.5 w-3.5 text-zinc-400" />
-                          <span className="text-xs font-medium text-zinc-800">{b.ad}</span>
+                          <FileText className="h-4 w-4 text-zinc-400" />
+                          <span className="text-sm font-medium text-zinc-800">{b.ad}</span>
                         </div>
                         <button
                           onClick={() => setOnizleme(b)}
                           className="rounded-lg border border-zinc-200 p-1 text-zinc-500 hover:bg-zinc-50"
                           title="Görüntüle"
                         >
-                          <Eye className="h-3.5 w-3.5" />
+                          <Eye className="h-4 w-4" />
                         </button>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : acikTalep.kaynak === "akademi-daveti" ? (
-                <div className="mt-1 grid grid-cols-2 gap-3 text-sm">
+                <div className="mt-1 grid grid-cols-2 gap-5 text-base">
                   <div>
-                    <div className="text-xs text-zinc-400">Vergi Levhası</div>
+                    <div className="text-sm text-zinc-400">Vergi Levhası</div>
                     <div className="mt-0.5 flex items-center gap-1.5">
                       <span className="font-medium text-zinc-800">
                         {acikTalep.aday.vergiLevhasi?.durum === "yuklendi"
@@ -570,46 +691,46 @@ export default function OnayBekleyenlerPage() {
                           className="rounded-lg border border-zinc-200 p-1 text-zinc-500 hover:bg-zinc-50"
                           title="Görüntüle"
                         >
-                          <Eye className="h-3.5 w-3.5" />
+                          <Eye className="h-4 w-4" />
                         </button>
                       )}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-zinc-400">BM Onaylı Konaklama</div>
-                    <div className="mt-0.5 font-medium text-zinc-800">
+                    <div className="text-sm text-zinc-400">BM Onaylı Konaklama</div>
+                    <div className="mt-1 text-base font-semibold text-zinc-900">
                       {acikTalep.aday.bmOnayliKonaklama ?? "—"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-zinc-400">Akademi Hesabı</div>
-                    <div className="mt-0.5 font-medium text-zinc-800">
+                    <div className="text-sm text-zinc-400">Akademi Hesabı</div>
+                    <div className="mt-1 text-base font-semibold text-zinc-900">
                       {acikTalep.aday.akademiHesabiAcildiMi
                         ? `Açıldı (${acikTalep.aday.akademiHesapUserId})`
                         : "Açılmadı"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-zinc-400">Akademi Başlangıç Tarihi</div>
-                    <div className="mt-0.5 font-medium text-zinc-800">
+                    <div className="text-sm text-zinc-400">Akademi Başlangıç Tarihi</div>
+                    <div className="mt-1 text-base font-semibold text-zinc-900">
                       {acikTalep.aday.yonlendirilecekAkademiTarihi ?? "—"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-zinc-400">Ayakkabı Numarası</div>
-                    <div className="mt-0.5 font-medium text-zinc-800">
+                    <div className="text-sm text-zinc-400">Ayakkabı Numarası</div>
+                    <div className="mt-1 text-base font-semibold text-zinc-900">
                       {acikTalep.aday.ayakkabiNo ?? "—"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-zinc-400">Üst / Alt Beden</div>
-                    <div className="mt-0.5 font-medium text-zinc-800">
+                    <div className="text-sm text-zinc-400">Üst / Alt Beden</div>
+                    <div className="mt-1 text-base font-semibold text-zinc-900">
                       {acikTalep.aday.ustBeden ?? "—"} / {acikTalep.aday.altBeden ?? "—"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-zinc-400">Dahil Edilecek Akademi</div>
-                    <div className="mt-0.5 font-medium text-zinc-800">
+                    <div className="text-sm text-zinc-400">Dahil Edilecek Akademi</div>
+                    <div className="mt-1 text-base font-semibold text-zinc-900">
                       {donemler.find((d) => d.id === acikTalep.aday.akademiDonemiId)?.ad ?? "—"}
                     </div>
                   </div>
@@ -617,9 +738,9 @@ export default function OnayBekleyenlerPage() {
               ) : (
                 <button
                   onClick={() => setOnizleme(acikTalep.belge)}
-                  className="mt-1 flex items-center justify-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                  className="mt-1 flex items-center justify-center gap-2 rounded-lg border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
                 >
-                  <Eye className="h-3.5 w-3.5" />
+                  <Eye className="h-4 w-4" />
                   Belgeyi Görüntüle
                 </button>
               )}
@@ -631,21 +752,21 @@ export default function OnayBekleyenlerPage() {
                       <textarea
                         value={redSebebi}
                         onChange={(e) => setRedSebebi(e.target.value)}
-                        rows={2}
+                        rows={3}
                         placeholder="Ret nedeni (zorunlu)"
                         className="w-full rounded-lg border border-rose-200 px-3 py-2 text-sm outline-none focus:border-rose-400"
                       />
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => setReddetAcik(false)}
-                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:bg-zinc-100"
+                          className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-500 hover:bg-zinc-100"
                         >
                           Vazgeç
                         </button>
                         <button
                           onClick={() => reddet(acikTalep)}
                           disabled={!redSebebi.trim()}
-                          className="rounded-lg bg-rose-600 disabled:cursor-not-allowed disabled:opacity-40 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+                          className="rounded-lg bg-rose-600 disabled:cursor-not-allowed disabled:opacity-40 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
                         >
                           Reddi Onayla
                         </button>
@@ -655,13 +776,13 @@ export default function OnayBekleyenlerPage() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => setReddetAcik(true)}
-                        className="flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                        className="flex items-center gap-1.5 rounded-xl border border-rose-200 px-5 py-2.5 text-base font-semibold text-rose-600 hover:bg-rose-50"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-4 w-4" />
                         Reddet
                       </button>
                       {davetAkademisiDolu && (
-                        <span className="mr-auto text-xs text-rose-600">
+                        <span className="mr-auto text-sm text-rose-600">
                           Seçilen akademinin kontenjanı doldu; talebi reddedip başka akademi
                           seçilmesini isteyin.
                         </span>
@@ -669,9 +790,9 @@ export default function OnayBekleyenlerPage() {
                       <button
                         onClick={() => onayla(acikTalep)}
                         disabled={davetAkademisiDolu}
-                        className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex items-center gap-1.5 rounded-xl bg-brand px-5 py-2.5 text-base font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <Check className="h-3.5 w-3.5" />
+                        <Check className="h-4 w-4" />
                         {acikTalep.kaynak === "akademi-daveti"
                           ? "Onayla ve Akademi Eğitmeni Yap"
                           : "Onayla"}

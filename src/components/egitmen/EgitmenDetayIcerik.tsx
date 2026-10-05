@@ -178,11 +178,7 @@ export function EgitmenDetayIcerik({
                 {fitness.kademe}. Kademe
               </div>
             </div>
-          ) : (
-            <span className="self-center text-xs font-medium text-rose-600">
-              Onaylı Fitness kademe belgesi yok
-            </span>
-          )}
+          ) : null}
         </div>
         <div className={grid}>
           <Alan label="Themis ID">

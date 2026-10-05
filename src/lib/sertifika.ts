@@ -118,14 +118,29 @@ export function kademeGecmisi(a: AdayEgitmen, brans: string): EgitmenSertifikasi
     );
 }
 
+export type AdimDurumu = "tamam" | "onayda" | "basarisiz" | "bekleniyor" | "yok";
+
 export type KademeYolculugu = {
   mevcut: number;
   hedef: number | null;
-  // PRD 12.3: "N. Kademe temel eğitimi yok" / "… temel eğitimi var, kurs bekleniyor".
-  durum: "temel_yok" | "kurs_bekleniyor" | "en_ust";
+  // PRD 12.3: "N. Kademe temel eğitimi yok" / "… temel eğitimi var, kurs bekleniyor" /
+  // "N. Kademe belgesi var". Onayda bekleyen ve başarısız sonuçlar da ayrıca belirtilir.
+  durum:
+    | "temel_yok"
+    | "temel_onayda"
+    | "temel_basarisiz"
+    | "kurs_bekleniyor"
+    | "belge_onayda"
+    | "en_ust";
   metin: string;
+  // Bir üst kademe için adımlar: temel eğitim → federasyon kursu → kademe belgesi.
+  adimlar: { temel: AdimDurumu; kurs: AdimDurumu; belge: AdimDurumu };
 };
 
+/**
+ * Bir branşta bir üst kademeye giden yolun durumu. Profildeki adımlar, yolculuk metni ve
+ * temel eğitim listesi hep bu fonksiyondan beslenir; böylece birbirleriyle çelişmez.
+ */
 export function kademeYolculugu(a: AdayEgitmen, brans: string): KademeYolculugu {
   const mevcut = aktifSertifika(a, brans)?.kademe ?? 0;
   const enUst = bransTanimi(brans)?.kademeSayisi ?? 5;
@@ -135,20 +150,64 @@ export function kademeYolculugu(a: AdayEgitmen, brans: string): KademeYolculugu 
       hedef: null,
       durum: "en_ust",
       metin: `${mevcut}. Kademe belgesi var (en üst kademe)`,
+      adimlar: { temel: "tamam", kurs: "tamam", belge: "tamam" },
     };
   }
   const hedef = mevcut + 1;
-  const temelVar = (a.temelEgitimSonuclari ?? []).some(
-    (t) => t.brans === brans && t.hedefKademe === hedef && t.onaylandi && t.sonuc === "Geçti"
+  const sonTemel = (a.temelEgitimSonuclari ?? [])
+    .filter((t) => t.brans === brans && t.hedefKademe === hedef && !t.redSebebi)
+    .at(-1);
+  const belgeOnayda = (a.sertifikalar ?? []).some(
+    (s) => s.brans === brans && s.kademe === hedef && !s.onaylandi && !s.redSebebi
   );
-  return temelVar
-    ? {
-        mevcut,
-        hedef,
-        durum: "kurs_bekleniyor",
-        metin: `${hedef}. Kademe temel eğitimi var, kurs bekleniyor`,
-      }
-    : { mevcut, hedef, durum: "temel_yok", metin: `${hedef}. Kademe temel eğitimi yok` };
+  const temelGecti = !!sonTemel && sonTemel.onaylandi && sonTemel.sonuc === "Geçti";
+
+  if (belgeOnayda) {
+    return {
+      mevcut,
+      hedef,
+      durum: "belge_onayda",
+      metin: `${hedef}. Kademe belgesi İK onayında`,
+      adimlar: { temel: "tamam", kurs: "tamam", belge: "onayda" },
+    };
+  }
+  if (temelGecti) {
+    return {
+      mevcut,
+      hedef,
+      durum: "kurs_bekleniyor",
+      metin: `${hedef}. Kademe temel eğitimi var, kurs bekleniyor`,
+      adimlar: { temel: "tamam", kurs: "bekleniyor", belge: "yok" },
+    };
+  }
+  if (sonTemel && !sonTemel.onaylandi) {
+    return {
+      mevcut,
+      hedef,
+      durum: "temel_onayda",
+      metin: `${hedef}. Kademe temel eğitimi sonucu (${sonTemel.sonuc}) İK onayında`,
+      adimlar: { temel: "onayda", kurs: "yok", belge: "yok" },
+    };
+  }
+  if (sonTemel) {
+    return {
+      mevcut,
+      hedef,
+      durum: "temel_basarisiz",
+      metin:
+        sonTemel.sonuc === "Katılmadı"
+          ? `${hedef}. Kademe temel eğitimi sınavına katılmadı`
+          : `${hedef}. Kademe temel eğitiminden kaldı`,
+      adimlar: { temel: "basarisiz", kurs: "yok", belge: "yok" },
+    };
+  }
+  return {
+    mevcut,
+    hedef,
+    durum: "temel_yok",
+    metin: `${hedef}. Kademe temel eğitimi yok`,
+    adimlar: { temel: "yok", kurs: "yok", belge: "yok" },
+  };
 }
 
 /** Sistemin otomatik hesapladığı kaldığı ders sayısı (PRD 12.3). */
@@ -187,3 +246,25 @@ export const onayBekleyenSertifikaVarMi = (a: AdayEgitmen) =>
 export const fitnessSertifikasi = (a: AdayEgitmen) => aktifSertifika(a, TEMEL_BRANS);
 export const digerBransSertifikalari = (a: AdayEgitmen) =>
   aktifSertifikalar(a).filter((s) => s.brans !== TEMEL_BRANS);
+
+/** Tablolarda kullanılan kısa ders başlıkları. */
+export const TEMEL_EGITIM_DERS_KISA: Record<string, string> = {
+  "Sporda Öğrenme ve Öğretim": "Öğrenme ve Öğretim",
+  "Spor Yönetimi": "Spor Yönetimi",
+  "Spor ve Sağlık Bilgisi": "Sağlık Bilgisi",
+  "Sporda Psikososyal Alanlar": "Psikososyal Alanlar",
+  "Hareket ve Antrenman Bilimi": "Antrenman Bilimi",
+};
+
+/**
+ * Temel eğitim sınav sonucu ders sonuçlarından hesaplanır (Excel'deki gibi): katılmadıysa
+ * "Katılmadı"; tüm dersler girildiyse bir ders bile kaldıysa "Kaldı", hepsi geçtiyse "Geçti".
+ */
+export function temelEgitimSonucuHesapla(
+  katilmadi: boolean,
+  dersler: Record<string, "Geçti" | "Kaldı">
+): "Geçti" | "Kaldı" | "Katılmadı" | null {
+  if (katilmadi) return "Katılmadı";
+  if (!TEMEL_EGITIM_DERSLERI.every((d) => dersler[d])) return null;
+  return TEMEL_EGITIM_DERSLERI.some((d) => dersler[d] === "Kaldı") ? "Kaldı" : "Geçti";
+}

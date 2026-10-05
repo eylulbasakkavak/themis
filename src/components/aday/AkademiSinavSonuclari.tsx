@@ -1,6 +1,7 @@
 "use client";
 
-import { ClipboardList, Download } from "lucide-react";
+import { useState } from "react";
+import { ChevronRight, ClipboardList, Download, X } from "lucide-react";
 import { Badge } from "@/components/Badge";
 import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
 import { basliklariGrupla, GECME_PUANI } from "@/lib/akademiSinavExcel";
@@ -57,11 +58,19 @@ function raporIndir(aday: AdayEgitmen, sonuc: AkademiSinavSonucu, akademiAdi: st
   URL.revokeObjectURL(url);
 }
 
-/** Eğitmen profilindeki Akademi Sınav Sonuçları — Excel'deki başlık ve puanlarla (PRD 9.1). */
+/** Eğitmen profilindeki Akademi Sınav Sonuçları — Excel'deki başlık ve puanlarla (PRD 9.1).
+ * Sayfada akademi ve genel sonuç özeti görünür; puanlar satıra tıklayınca detayda açılır. */
 export function AkademiSinavSonuclari({ aday }: { aday: AdayEgitmen }) {
   const { donemler } = useAkademiDonemleri();
   const { sinavSonuclari } = useAkademiSinavSonuclari();
+  const [acik, setAcik] = useState<AkademiSinavSonucu | null>(null);
   const sonuclar = sinavSonuclari.filter((s) => s.egitmenId === aday.id);
+  const akademiAdi = (sonuc: AkademiSinavSonucu) => {
+    const akademi = donemler.find((d) => d.id === sonuc.akademiDonemiId);
+    return akademi
+      ? `${akademi.ad} (${akademi.baslangicTarihi} – ${akademi.bitisTarihi})`
+      : "Akademi";
+  };
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -70,83 +79,110 @@ export function AkademiSinavSonuclari({ aday }: { aday: AdayEgitmen }) {
       {sonuclar.length === 0 ? (
         <div className="flex items-center gap-2 rounded-xl border border-dashed border-zinc-200 px-4 py-6 text-sm text-zinc-400">
           <ClipboardList className="h-4 w-4 shrink-0" />
-          Henüz sınav sonucu yüklenmedi. Sonuçlar Toplu İşlemler → Toplu Akademi Sınav Sonucu
-          Yükleme ekranından Excel ile yüklenir.
+          Henüz sınav sonucu yüklenmedi. Sonuçlar Toplu İşlemler → Toplu Akademi Sınav Sonucu Gir
+          ekranından Excel ile yüklenir.
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-100">
           {sonuclar.map((sonuc) => {
-            const akademi = donemler.find((d) => d.id === sonuc.akademiDonemiId);
-            const akademiAdi = akademi
-              ? `${akademi.ad} (${akademi.baslangicTarihi} – ${akademi.bitisTarihi})`
-              : "Akademi";
+            const kalanDers = sonuc.puanlar.filter((p) => p !== null && p < GECME_PUANI).length;
             return (
-              <div key={sonuc.id} className="rounded-xl border border-zinc-100">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 px-4 py-3">
-                  <div>
-                    <div className="text-sm font-medium text-zinc-800">{akademiAdi}</div>
-                    <div className="text-xs text-zinc-400">
-                      Yüklendi: {sonuc.yuklemeTarihi} · {sonuc.yukleyen}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <div className="text-[11px] text-zinc-400">
-                        Genel Sonuç ({sonuc.genelSonucBasligi})
-                      </div>
-                      <GenelSonucRozeti sonuc={sonuc.genelSonuc} />
-                    </div>
-                    <button
-                      onClick={() => raporIndir(aday, sonuc, akademiAdi)}
-                      className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      Rapor
-                    </button>
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-center text-sm">
-                    <thead>
-                      <tr className="text-[11px] font-semibold text-zinc-500">
-                        {basliklariGrupla(sonuc.basliklar).map((g, i) => (
-                          <th
-                            key={`${g.grup}-${i}`}
-                            colSpan={g.adet}
-                            className="border-b border-l border-zinc-100 px-2 py-1.5 first:border-l-0"
-                          >
-                            {g.grup}
-                          </th>
-                        ))}
-                      </tr>
-                      <tr className="text-[10px] font-medium text-zinc-400">
-                        {sonuc.basliklar.map((b, i) => (
-                          <th
-                            key={i}
-                            className="border-l border-zinc-100 px-2 py-1.5 first:border-l-0"
-                          >
-                            {b.ad}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        {sonuc.puanlar.map((p, i) => (
-                          <td
-                            key={i}
-                            className="border-l border-zinc-100 px-2 py-2 first:border-l-0"
-                          >
-                            <SinavPuani puan={p} />
-                          </td>
-                        ))}
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <button
+                key={sonuc.id}
+                onClick={() => setAcik(sonuc)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-zinc-50"
+              >
+                <span>
+                  <span className="block text-sm font-semibold text-zinc-900">
+                    {akademiAdi(sonuc)}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-zinc-400">
+                    Yüklendi: {sonuc.yuklemeTarihi} · {sonuc.yukleyen}
+                    {kalanDers > 0 && ` · ${kalanDers} derste ${GECME_PUANI} altı`}
+                  </span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <GenelSonucRozeti sonuc={sonuc.genelSonuc} />
+                  <ChevronRight className="h-4 w-4 text-zinc-300" />
+                </span>
+              </button>
             );
           })}
+        </div>
+      )}
+
+      {acik && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setAcik(null)}
+        >
+          <div
+            className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-zinc-100 px-6 py-4">
+              <div>
+                <h2 className="text-base font-semibold text-zinc-900">Akademi Sınav Sonucu</h2>
+                <p className="text-xs text-zinc-400">
+                  {akademiAdi(acik)} · Yüklendi: {acik.yuklemeTarihi} · {acik.yukleyen}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-[11px] text-zinc-400">
+                    Genel Sonuç ({acik.genelSonucBasligi})
+                  </div>
+                  <GenelSonucRozeti sonuc={acik.genelSonuc} />
+                </div>
+                <button
+                  onClick={() => raporIndir(aday, acik, akademiAdi(acik))}
+                  className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Rapor
+                </button>
+                <button
+                  onClick={() => setAcik(null)}
+                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="overflow-auto p-6">
+              <table className="w-full rounded-xl border border-zinc-100 text-center text-sm">
+                <thead>
+                  <tr className="text-[11px] font-semibold text-zinc-500">
+                    {basliklariGrupla(acik.basliklar).map((g, i) => (
+                      <th
+                        key={`${g.grup}-${i}`}
+                        colSpan={g.adet}
+                        className="border-b border-l border-zinc-100 px-2 py-1.5 first:border-l-0"
+                      >
+                        {g.grup}
+                      </th>
+                    ))}
+                  </tr>
+                  <tr className="text-[10px] font-medium text-zinc-400">
+                    {acik.basliklar.map((b, i) => (
+                      <th key={i} className="border-l border-zinc-100 px-2 py-1.5 first:border-l-0">
+                        {b.ad}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {acik.puanlar.map((p, i) => (
+                      <td key={i} className="border-l border-zinc-100 px-2 py-2 first:border-l-0">
+                        <SinavPuani puan={p} />
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>

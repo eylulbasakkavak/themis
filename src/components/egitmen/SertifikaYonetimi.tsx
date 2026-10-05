@@ -1,14 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useState, type ReactNode } from "react";
-import { AlertTriangle, Check, FileText, History, Plus, Upload, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import {
+  AlertTriangle,
+  Check,
+  ChevronRight,
+  FileText,
+  History,
+  Plus,
+  Upload,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/Badge";
 import { bugun, inputTarihindenCevir, tarihCoz, tarihYaz } from "@/lib/akademi";
 import { useBildirimler } from "@/lib/BildirimlerContext";
 import { ikYetkisiVarMi, KULLANICILAR, useCurrentUser } from "@/lib/CurrentUserContext";
 import { sertifikaOnayla } from "@/lib/sertifikaOnay";
 import {
+  type AdimDurumu,
   aktifSertifika,
   aktifSertifikalar,
   BRANS_TANIMLARI,
@@ -18,6 +28,7 @@ import {
   kaldigiDersSayisi,
   TEMEL_BRANS,
   TEMEL_EGITIM_DERSLERI,
+  temelEgitimSonucuHesapla,
   VIZE_DURUMU_BILGI,
   vizeDurumu,
   vizeKalanGun,
@@ -28,7 +39,6 @@ import type {
   EgitmenSertifikasi,
   SertifikaVizesi,
   TemelEgitimSonucu,
-  TemelEgitimSonucuTipi,
 } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
@@ -176,6 +186,30 @@ function Etiketli({
     </label>
   );
 }
+
+/** Kademe yolculuğu adımlarının görünümü. */
+const ADIM_STILI: Record<AdimDurumu, { kutu: string; daire: string; etiket?: string }> = {
+  tamam: {
+    kutu: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    daire: "bg-emerald-600 text-white",
+  },
+  onayda: {
+    kutu: "border-amber-200 bg-amber-50 text-amber-800",
+    daire: "bg-amber-500 text-white",
+    etiket: "İK onayında",
+  },
+  basarisiz: {
+    kutu: "border-rose-200 bg-rose-50 text-rose-700",
+    daire: "bg-rose-600 text-white",
+    etiket: "Başarısız",
+  },
+  bekleniyor: {
+    kutu: "border-sky-200 bg-sky-50 text-sky-700",
+    daire: "bg-sky-600 text-white",
+    etiket: "Bekleniyor",
+  },
+  yok: { kutu: "border-zinc-200 text-zinc-500", daire: "bg-zinc-100 text-zinc-500" },
+};
 
 /** Belge dosyası seçimi; prototipte yalnızca dosya adı tutulur. */
 function BelgeSecici({ belge, onChange }: { belge?: Belge; onChange: (b: Belge) => void }) {
@@ -348,12 +382,12 @@ function TemelEgitimFormu({
   const [brans, setBrans] = useState(TEMEL_BRANS);
   const [hedef, setHedef] = useState(kademeYolculugu(aday, TEMEL_BRANS).hedef ?? 0);
   const [tarih, setTarih] = useState("");
-  const [sonuc, setSonuc] = useState<TemelEgitimSonucuTipi | "">("");
+  const [katilmadi, setKatilmadi] = useState(false);
   const [dersler, setDersler] = useState<Record<string, "Geçti" | "Kaldı">>({});
   const [mazeret, setMazeret] = useState("");
-  const katilmadi = sonuc === "Katılmadı";
-  const derslerTamam = TEMEL_EGITIM_DERSLERI.every((d) => dersler[d]);
-  const kalan = Object.values(dersler).filter((d) => d === "Kaldı").length;
+  // Sınav sonucu ve kaldığı ders sayısı ders sonuçlarından otomatik hesaplanır (PRD 12.3).
+  const sonuc = temelEgitimSonucuHesapla(katilmadi, dersler);
+  const kalan = katilmadi ? 0 : Object.values(dersler).filter((d) => d === "Kaldı").length;
   const enUst = bransTanimi(brans)?.kademeSayisi ?? 5;
   return (
     <Pencere
@@ -361,9 +395,7 @@ function TemelEgitimFormu({
       altBaslik="Anadolu Üniversitesi temel eğitim sınavı; sonuç İK onayına düşer."
       onClose={onClose}
       kaydetMetni="Kaydet"
-      kaydedilebilir={
-        hedef > 0 && !!tarih && !!sonuc && (katilmadi ? !!mazeret.trim() : derslerTamam)
-      }
+      kaydedilebilir={hedef > 0 && !!tarih && !!sonuc && (!katilmadi || !!mazeret.trim())}
       onKaydet={() =>
         sonuc &&
         onKaydet({
@@ -372,11 +404,11 @@ function TemelEgitimFormu({
           sinavTarihi: inputTarihindenCevir(tarih),
           sonuc,
           dersler: katilmadi ? {} : dersler,
-          mazeret: katilmadi ? mazeret.trim() : undefined,
+          mazeret: mazeret.trim() || undefined,
         })
       }
     >
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Etiketli label="Branş" zorunlu>
           <select
             value={brans}
@@ -405,81 +437,89 @@ function TemelEgitimFormu({
             ))}
           </select>
         </Etiketli>
-      </div>
-      <Etiketli label="Sınav tarihi" zorunlu>
-        <input
-          type="date"
-          value={tarih}
-          onChange={(e) => setTarih(e.target.value)}
-          className={girdi}
-        />
-      </Etiketli>
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-zinc-600">
-          Sınav sonucu<span className="ml-0.5 text-rose-500">*</span>
-        </span>
-        <div className="flex gap-2">
-          {(["Geçti", "Kaldı", "Katılmadı"] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setSonuc(s)}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-semibold ${
-                sonuc === s
-                  ? "border-zinc-900 bg-zinc-900 text-white"
-                  : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-      {sonuc && !katilmadi && (
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-zinc-600">
-            Ders bazında sonuçlar<span className="ml-0.5 text-rose-500">*</span>
-          </span>
-          <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200">
-            {TEMEL_EGITIM_DERSLERI.map((d) => (
-              <div key={d} className="flex items-center justify-between gap-3 px-3 py-2">
-                <span className="text-sm text-zinc-700">{d}</span>
-                <div className="flex gap-1.5">
-                  {(["Geçti", "Kaldı"] as const).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setDersler({ ...dersler, [d]: v })}
-                      className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
-                        dersler[d] === v
-                          ? v === "Geçti"
-                            ? "bg-emerald-600 text-white"
-                            : "bg-rose-600 text-white"
-                          : "border border-zinc-200 text-zinc-500 hover:bg-zinc-50"
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <span className="text-xs text-zinc-500">
-            Kaldığı ders sayısı (otomatik): <strong className="text-zinc-800">{kalan}</strong>
-          </span>
-        </div>
-      )}
-      {katilmadi && (
-        <Etiketli label="Mazeret" zorunlu>
-          <textarea
-            value={mazeret}
-            onChange={(e) => setMazeret(e.target.value)}
-            rows={2}
+        <Etiketli label="Sınav tarihi" zorunlu>
+          <input
+            type="date"
+            value={tarih}
+            onChange={(e) => setTarih(e.target.value)}
             className={girdi}
           />
         </Etiketli>
-      )}
+      </div>
+
+      <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium text-zinc-700">
+        <input
+          type="checkbox"
+          checked={katilmadi}
+          onChange={(e) => setKatilmadi(e.target.checked)}
+          className="h-4 w-4 rounded border-zinc-300"
+        />
+        Sınava katılmadı
+      </label>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-zinc-600">
+          Ders bazında sonuçlar{!katilmadi && <span className="ml-0.5 text-rose-500">*</span>}
+        </span>
+        <div
+          className={`divide-y divide-zinc-100 rounded-xl border border-zinc-200 ${katilmadi ? "opacity-40" : ""}`}
+        >
+          {TEMEL_EGITIM_DERSLERI.map((d) => (
+            <div key={d} className="flex items-center justify-between gap-3 px-3 py-2">
+              <span className="text-sm text-zinc-700">{d}</span>
+              <div className="flex gap-1.5">
+                {(["Geçti", "Kaldı"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    disabled={katilmadi}
+                    onClick={() => setDersler({ ...dersler, [d]: v })}
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed ${
+                      dersler[d] === v && !katilmadi
+                        ? v === "Geçti"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-rose-600 text-white"
+                        : "border border-zinc-200 text-zinc-500 hover:bg-zinc-50"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 rounded-xl bg-zinc-50 px-4 py-3">
+        <div>
+          <div className="text-xs text-zinc-400">Sınav sonucu (otomatik)</div>
+          <div className="mt-1">
+            {sonuc ? (
+              <Badge
+                label={sonuc.toLocaleUpperCase("tr-TR")}
+                tone={sonuc === "Geçti" ? "green" : sonuc === "Kaldı" ? "red" : "amber"}
+              />
+            ) : (
+              <span className="text-sm text-zinc-400">Tüm dersler girilince</span>
+            )}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-zinc-400">Kaldığı ders sayısı (otomatik)</div>
+          <div className="mt-1 text-base font-bold text-zinc-900">{katilmadi ? "—" : kalan}</div>
+        </div>
+      </div>
+
+      <Etiketli label="Mazeret" zorunlu={katilmadi}>
+        <textarea
+          value={mazeret}
+          onChange={(e) => setMazeret(e.target.value)}
+          rows={2}
+          placeholder={katilmadi ? "Sınava katılmama nedeni" : "Varsa açıklama"}
+          className={girdi}
+        />
+      </Etiketli>
     </Pencere>
   );
 }
@@ -517,7 +557,7 @@ export function SertifikaYonetimi({
       (aday.sertifikalar ?? []).filter((s) => s.brans !== TEMEL_BRANS).map((s) => s.brans)
     ),
   ];
-  const [temelDetay, setTemelDetay] = useState<string | null>(null);
+  const [temelDetay, setTemelDetay] = useState<TemelEgitimSonucu | null>(null);
   // Fitness önce; her branşta en yüksek hedef kademe (en yeni) üstte, geçmiş kademeler altında.
   const temelEgitimler = [...(aday.temelEgitimSonuclari ?? [])].sort(
     (x, y) =>
@@ -593,7 +633,13 @@ export function SertifikaYonetimi({
               <div className="text-xs text-zinc-400">Kademe yolculuğu</div>
               <div
                 className={`text-sm font-semibold ${
-                  fitnessYolu.durum === "kurs_bekleniyor" ? "text-sky-700" : "text-zinc-700"
+                  fitnessYolu.durum === "kurs_bekleniyor"
+                    ? "text-sky-700"
+                    : fitnessYolu.durum === "temel_onayda" || fitnessYolu.durum === "belge_onayda"
+                      ? "text-amber-700"
+                      : fitnessYolu.durum === "temel_basarisiz"
+                        ? "text-rose-700"
+                        : "text-zinc-700"
                 }`}
               >
                 {fitnessYolu.metin}
@@ -610,32 +656,34 @@ export function SertifikaYonetimi({
 
         {fitnessYolu.hedef && (
           <div className="mt-4 grid grid-cols-3 gap-2">
-            {[
-              {
-                ad: `${fitnessYolu.hedef}. Kademe temel eğitimi`,
-                tamam: fitnessYolu.durum === "kurs_bekleniyor",
-              },
-              { ad: "Federasyon kademe kursu", tamam: false },
-              { ad: `${fitnessYolu.hedef}. Kademe belgesi`, tamam: false },
-            ].map((adim, i) => (
-              <div
-                key={adim.ad}
-                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${
-                  adim.tamam
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-zinc-200 text-zinc-500"
-                }`}
-              >
-                <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                    adim.tamam ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-500"
-                  }`}
+            {(
+              [
+                {
+                  ad: `${fitnessYolu.hedef}. Kademe temel eğitimi`,
+                  durum: fitnessYolu.adimlar.temel,
+                },
+                { ad: "Federasyon kademe kursu", durum: fitnessYolu.adimlar.kurs },
+                { ad: `${fitnessYolu.hedef}. Kademe belgesi`, durum: fitnessYolu.adimlar.belge },
+              ] as const
+            ).map((adim, i) => {
+              const stil = ADIM_STILI[adim.durum];
+              return (
+                <div
+                  key={adim.ad}
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${stil.kutu}`}
                 >
-                  {adim.tamam ? <Check className="h-3 w-3" strokeWidth={3} /> : i + 1}
-                </span>
-                {adim.ad}
-              </div>
-            ))}
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${stil.daire}`}
+                  >
+                    {adim.durum === "tamam" ? <Check className="h-3 w-3" strokeWidth={3} /> : i + 1}
+                  </span>
+                  <span>
+                    {adim.ad}
+                    {stil.etiket && <span className="ml-1 font-semibold">· {stil.etiket}</span>}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -783,98 +831,29 @@ export function SertifikaYonetimi({
             Temel eğitim sonucu girilmedi.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-zinc-100 text-xs font-medium text-zinc-400">
-                  <th className="py-2 pr-4">Temel Eğitim</th>
-                  <th className="px-4 py-2">Sınav Tarihi</th>
-                  <th className="px-4 py-2">Sonuç</th>
-                  <th className="px-4 py-2">Kaldığı Ders</th>
-                  <th className="px-4 py-2">Durum</th>
-                  <th className="py-2 pl-4" />
-                </tr>
-              </thead>
-              <tbody>
-                {temelEgitimler.map((t) => {
-                  const acik = temelDetay === t.id;
-                  return (
-                    <Fragment key={t.id}>
-                      <tr className="border-b border-zinc-50">
-                        <td className="py-2.5 pr-4">
-                          <span className="font-medium text-zinc-800">{t.brans}</span>
-                          <span className="ml-1.5 text-zinc-500">{t.hedefKademe}. Kademe</span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-zinc-600">
-                          {t.sinavTarihi}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <Badge
-                            label={t.sonuc}
-                            tone={
-                              t.sonuc === "Geçti" ? "green" : t.sonuc === "Kaldı" ? "red" : "amber"
-                            }
-                          />
-                        </td>
-                        <td className="px-4 py-2.5 text-zinc-600">
-                          {t.sonuc === "Katılmadı" ? "—" : kaldigiDersSayisi(t)}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          {t.onaylandi ? (
-                            <span className="text-xs text-zinc-400">Onaylı</span>
-                          ) : (
-                            <span className="flex items-center gap-2">
-                              <OnayRozeti kayit={t} />
-                              {bekleyenMi(t) && onayLinki(`${aday.id}-temel-${t.id}`)}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2.5 pl-4 text-right">
-                          <button
-                            onClick={() => setTemelDetay(acik ? null : t.id)}
-                            className="text-xs font-medium text-zinc-500 hover:underline"
-                          >
-                            {acik ? "Gizle" : "Dersler"}
-                          </button>
-                        </td>
-                      </tr>
-                      {acik && (
-                        <tr className="border-b border-zinc-50 bg-zinc-50/50">
-                          <td colSpan={6} className="px-3 py-3">
-                            {t.sonuc === "Katılmadı" ? (
-                              <p className="text-sm text-zinc-600">Mazeret: {t.mazeret || "—"}</p>
-                            ) : (
-                              <div className="flex flex-wrap gap-1.5">
-                                {TEMEL_EGITIM_DERSLERI.map((d) => (
-                                  <span
-                                    key={d}
-                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                      t.dersler[d] === "Kaldı"
-                                        ? "bg-rose-50 text-rose-700"
-                                        : "bg-emerald-50 text-emerald-700"
-                                    }`}
-                                  >
-                                    {d}: {t.dersler[d] ?? "—"}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {t.redSebebi && (
-                              <p className="mt-2 text-xs text-rose-600">
-                                Ret nedeni: {t.redSebebi}
-                              </p>
-                            )}
-                            <p className="mt-2 text-xs text-zinc-400">
-                              Giren: {t.yukleyen} · {t.tarih}
-                            </p>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-100">
+            {temelEgitimler.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTemelDetay(t)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-zinc-50"
+              >
+                <span>
+                  <span className="text-sm font-semibold text-zinc-900">
+                    {t.brans} {t.hedefKademe}. Kademe Temel Eğitimi
+                  </span>
+                  <span className="mt-0.5 block text-xs text-zinc-400">Sınav {t.sinavTarihi}</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  {!t.onaylandi && <OnayRozeti kayit={t} />}
+                  <Badge
+                    label={t.sonuc.toLocaleUpperCase("tr-TR")}
+                    tone={t.sonuc === "Geçti" ? "green" : t.sonuc === "Kaldı" ? "red" : "amber"}
+                  />
+                  <ChevronRight className="h-4 w-4 text-zinc-300" />
+                </span>
+              </button>
+            ))}
           </div>
         )}
       </Bolum>
@@ -949,6 +928,101 @@ export function SertifikaYonetimi({
         )}
       </Bolum>
 
+      {temelDetay && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setTemelDetay(null)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b border-zinc-100 px-6 py-4">
+              <div>
+                <h2 className="text-base font-semibold text-zinc-900">
+                  {temelDetay.brans} {temelDetay.hedefKademe}. Kademe Temel Eğitimi
+                </h2>
+                <p className="text-xs text-zinc-400">
+                  Anadolu Üniversitesi temel eğitim sınavı · {temelDetay.sinavTarihi}
+                </p>
+              </div>
+              <button
+                onClick={() => setTemelDetay(null)}
+                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-4 px-6 py-5">
+              <div className="grid grid-cols-2 gap-3 rounded-xl bg-zinc-50 px-4 py-3">
+                <div>
+                  <div className="text-xs text-zinc-400">Sınav sonucu</div>
+                  <div className="mt-1">
+                    <Badge
+                      label={temelDetay.sonuc.toLocaleUpperCase("tr-TR")}
+                      tone={
+                        temelDetay.sonuc === "Geçti"
+                          ? "green"
+                          : temelDetay.sonuc === "Kaldı"
+                            ? "red"
+                            : "amber"
+                      }
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-zinc-400">Kaldığı ders sayısı</div>
+                  <div className="mt-1 text-base font-bold text-zinc-900">
+                    {temelDetay.sonuc === "Katılmadı" ? "—" : kaldigiDersSayisi(temelDetay)}
+                  </div>
+                </div>
+              </div>
+              {temelDetay.sonuc !== "Katılmadı" && (
+                <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200">
+                  {TEMEL_EGITIM_DERSLERI.map((d) => (
+                    <div key={d} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                      <span className="text-sm text-zinc-700">{d}</span>
+                      {temelDetay.dersler[d] ? (
+                        <span
+                          className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
+                            temelDetay.dersler[d] === "Kaldı"
+                              ? "bg-rose-50 text-rose-700"
+                              : "bg-emerald-50 text-emerald-700"
+                          }`}
+                        >
+                          {temelDetay.dersler[d]!.toLocaleUpperCase("tr-TR")}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-300">—</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div>
+                <div className="text-xs text-zinc-400">Mazeret</div>
+                <div className="mt-1 text-sm text-zinc-700">{temelDetay.mazeret || "—"}</div>
+              </div>
+              {temelDetay.redSebebi && (
+                <div className="text-sm text-rose-600">Ret nedeni: {temelDetay.redSebebi}</div>
+              )}
+              <div className="flex items-center justify-between border-t border-zinc-100 pt-3 text-xs text-zinc-400">
+                <span>
+                  Giren: {temelDetay.yukleyen} · {temelDetay.tarih}
+                </span>
+                {temelDetay.onaylandi ? (
+                  <span>Onaylı</span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <OnayRozeti kayit={temelDetay} />
+                    {bekleyenMi(temelDetay) && onayLinki(`${aday.id}-temel-${temelDetay.id}`)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {form?.tur === "sertifika" && (
         <SertifikaFormu
           aday={aday}

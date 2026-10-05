@@ -437,7 +437,7 @@ const SEKMELER: SekmeTanimi[] = [
   },
   {
     id: "pasif",
-    label: "Süreci Biten",
+    label: "Pasif Eğitmenler",
     // İşten çıkan eğitmenler ile süreci eğitmenliğe varmadan biten adaylar. Statü değişmez:
     // çıkanlar Pasif Eğitmen, diğerleri Aday Eğitmen olarak kalır (Statü kolonunda görünür).
     kapsam: (a) => a.surecDurumu === "pasif" || SURECI_BITEN.includes(a.surecDurumu),

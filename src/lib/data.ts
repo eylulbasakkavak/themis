@@ -1309,7 +1309,59 @@ function gunSonra(gun: number): string {
 
 /** Eğitmen ve pasif eğitmen örnek kayıtlarına PRD 12 sertifika/vize verisi ekler. */
 function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
-  if (a.sertifikalar || (a.surecDurumu !== "egitmen" && a.surecDurumu !== "pasif")) return a;
+  if (a.sertifikalar) return a;
+  // Aday ve akademi eğitmenleri: beyan ettikleri kademeye kadar her kademenin onaylı Fitness
+  // belgesi (en yükseği geçerli vizeli) ve her kademenin, belgesinden önce geçilmiş temel eğitimi.
+  if (a.surecDurumu !== "egitmen" && a.surecDurumu !== "pasif") {
+    const k = Number(a.federasyonKademeDurumu?.match(/^(\d)\. Kademe belgem var/)?.[1]) || 1;
+    const bitis = gunSonra(150 + (i % 150));
+    const [g, ay, y] = a.basvuruTarihi.split(".").map(Number);
+    const yaz = (d: Date) =>
+      `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+    // j. kademe belgesi en yüksek kademeden (k - j) yıl önce; temel eğitim belgeden 2 ay önce.
+    const belgeGunu = (j: number) => new Date(y - (k - j), ay - 1, g - 120);
+    const temelGunu = (j: number) => {
+      const d = belgeGunu(j);
+      return new Date(d.getFullYear(), d.getMonth() - 2, d.getDate());
+    };
+    return {
+      ...a,
+      sertifikalar: Array.from({ length: k }, (_, idx) => {
+        const j = k - idx;
+        const tarih = yaz(belgeGunu(j));
+        return {
+          id: j === k ? `${a.id}-fitness` : `${a.id}-fitness-k${j}`,
+          brans: "Fitness",
+          kademe: j,
+          belgeTarihi: tarih,
+          onaylandi: true,
+          belge: { ad: `Fitness ${j}. Kademe Belgesi.pdf`, durum: "yuklendi" as const, tarih },
+          ...(j === k
+            ? {
+                vizeDonemi: `${Number(bitis.slice(-4)) - 1}-${bitis.slice(-4)} Sezonu`,
+                vizeBitisTarihi: bitis,
+              }
+            : {}),
+        };
+      }),
+      temelEgitimSonuclari:
+        a.temelEgitimSonuclari ??
+        Array.from({ length: k }, (_, idx) => {
+          const tStr = yaz(temelGunu(idx + 1));
+          return {
+            id: `${a.id}-temel-Fitness-${idx + 1}`,
+            brans: "Fitness",
+            hedefKademe: idx + 1,
+            sinavTarihi: tStr,
+            sonuc: "Geçti" as const,
+            dersler: Object.fromEntries(TEMEL_EGITIM_DERSLERI.map((d) => [d, "Geçti" as const])),
+            onaylandi: true,
+            yukleyen: "Mert Aydın (Kulüp Müdürü)",
+            tarih: tStr,
+          };
+        }),
+    };
+  }
   // Belge tarihleri işe girişe göre: kademe 1 belgesi işe girişten önce (işe alım şartı),
   // daha yüksek kademeler işe girişten sonra alınmıştır.
   const isGiris =
@@ -1370,7 +1422,9 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
     });
   }
   // Bazı eğitmenlerin KM'nin yüklediği yeni kademe belgesi İK onayı bekler.
-  if (i % 11 === 4) {
+  // Bir üst kademenin temel eğitimini geçip kursu tamamlamış, yeni belgesi İK onayında.
+  const yeniBelgeOnayda = i % 11 === 4 && kademe < 5;
+  if (yeniBelgeOnayda) {
     sertifikalar.push({
       id: `${a.id}-fitness-yeni`,
       brans: "Fitness",
@@ -1379,17 +1433,21 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
       onaylandi: false,
     });
   }
-  // Kademe geçmişi: mevcut kademenin altındaki eski Fitness belgesi (artık aktif değil).
-  if (kademe > 1) {
-    sertifikalar.push({
-      id: `${a.id}-fitness-onceki`,
-      brans: "Fitness",
-      kademe: kademe - 1,
-      belgeTarihi: isGirisOncesi,
-      onaylandi: true,
-      vizeDonemi: "2022-2023 Sezonu",
-      vizeBitisTarihi: "30.06.2023",
-    });
+  // Kademe geçmişi: her branşta ulaşılan kademenin altındaki tüm eski belgeler (artık aktif
+  // değil). Fitness 1. kademe belgesi işe girişten önce, ara kademeler aradaki yıllarda alınmıştır.
+  for (const aktif of sertifikalar.filter((x) => x.onaylandi)) {
+    for (let j = 1; j < aktif.kademe; j++) {
+      sertifikalar.push({
+        id: `${aktif.id}-k${j}`,
+        brans: aktif.brans,
+        kademe: j,
+        belgeTarihi:
+          aktif.brans === "Fitness" && j === 1
+            ? isGirisOncesi
+            : sonraki((0.6 * j) / aktif.kademe - 0.05),
+        onaylandi: true,
+      });
+    }
   }
   // Her onaylı sertifikanın belgesi ve geçerli vizesinin kaydı.
   const tamamlanmis = sertifikalar.map((s) => ({
@@ -1423,16 +1481,19 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
         j < kalanlar ? ("Kaldı" as const) : ("Geçti" as const),
       ])
     );
-  const temelEgitimSonuclari: TemelEgitimSonucu[] =
-    kademe < 5 && i % 4 === 0
+  const temelEgitimSonuclari: TemelEgitimSonucu[] = yeniBelgeOnayda
+    ? []
+    : kademe < 5 && i % 4 === 0
       ? [
           {
             id: `${a.id}-temel-1`,
             brans: "Fitness",
             hedefKademe: kademe + 1,
             sinavTarihi: "14.06.2026",
-            sonuc: i % 8 === 0 ? "Geçti" : "Kaldı",
-            dersler: dersler(i % 8 === 0 ? 0 : 2),
+            // Geçti / Katılmadı (mazeretli) / Kaldı (1–3 ders) örnekleri.
+            sonuc: i % 12 === 0 ? "Geçti" : i % 12 === 4 ? "Katılmadı" : "Kaldı",
+            dersler: i % 12 === 4 ? {} : dersler(i % 12 === 0 ? 0 : 1 + (i % 3)),
+            mazeret: i % 12 === 4 ? "Sağlık raporu nedeniyle sınava katılamadı" : undefined,
             onaylandi: true,
             yukleyen: "Mert Aydın (Kulüp Müdürü)",
             tarih: "20.06.2026",
@@ -1459,17 +1520,28 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
   for (const s of tamamlanmis.filter((x) => x.onaylandi)) {
     enYuksek.set(s.brans, Math.max(enYuksek.get(s.brans) ?? 0, s.kademe));
   }
+  // Yeni kademe belgesi onaydaysa o kademenin temel eğitimi de geçilmiştir.
+  if (yeniBelgeOnayda) enYuksek.set("Fitness", kademe + 1);
+  // Her temel eğitim, o kademenin belgesinden iki ay önce geçilmiştir (belgesi onayda olan
+  // kademe için ise yakın zamanda).
+  const temelTarihi = (brans: string, kademeNo: number) => {
+    const belge = tamamlanmis.find((x) => x.brans === brans && x.kademe === kademeNo);
+    if (!belge) return gunSonra(-40);
+    const [g, ay, y] = belge.belgeTarihi.split(".").map(Number);
+    const d = new Date(y, ay - 3, g);
+    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+  };
   const gecmisTemel: TemelEgitimSonucu[] = [...enYuksek].flatMap(([brans, enUst]) =>
     Array.from({ length: enUst }, (_, k) => ({
       id: `${a.id}-temel-${brans}-${k + 1}`,
       brans,
       hedefKademe: k + 1,
-      sinavTarihi: `${String(8 + k).padStart(2, "0")}.04.${2019 + k + (brans === "Fitness" ? 0 : 3)}`,
+      sinavTarihi: temelTarihi(brans, k + 1),
       sonuc: "Geçti" as const,
       dersler: dersler(0),
       onaylandi: true,
       yukleyen: "Mert Aydın (Kulüp Müdürü)",
-      tarih: `${String(15 + k).padStart(2, "0")}.04.${2019 + k + (brans === "Fitness" ? 0 : 3)}`,
+      tarih: temelTarihi(brans, k + 1),
     }))
   );
   // Bazı eğitmenlerin yenilenen vizesi KM tarafından girilmiş, İK onayında (PRD 12.4).
@@ -1638,6 +1710,11 @@ function raporAlanlariniTamamla(a: AdayEgitmen, i: number): AdayEgitmen {
 }
 
 export const adayEgitmenler: AdayEgitmen[] = adlariTeklestir(
-  tumAdaylar.map(kaydiTutarliHaleGetir).map(sertifikalariTamamla).map(raporAlanlariniTamamla),
+  tumAdaylar
+    .map(kaydiTutarliHaleGetir)
+    // Onaylı Fitness kademe belgesi olmayan kimse sistemde yer almaz.
+    .filter((a) => /Kademe belgem var/.test(a.federasyonKademeDurumu ?? ""))
+    .map(sertifikalariTamamla)
+    .map(raporAlanlariniTamamla),
   SOYADLAR
 );

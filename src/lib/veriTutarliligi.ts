@@ -161,6 +161,18 @@ const IK = "Elif Su (İK)";
 export function kaydiTutarliHaleGetir(a: AdayEgitmen, i: number): AdayEgitmen {
   const asama = ASAMA[a.surecDurumu];
   const r: AdayEgitmen = { ...a };
+  // İK'nın girdiği belge seti ve davet bilgileri doğrudan onaylı sayılır; İK onayı bekleyen
+  // kayıtları her zaman kulüp müdürü göndermiştir (PRD 4.3, 6).
+  if (
+    (a.surecDurumu === "ik_onayi_bekliyor" || a.surecDurumu === "akademi_daveti_onayi_bekliyor") &&
+    a.mulakatiYapanRol === "İK"
+  ) {
+    r.mulakatiYapanRol = "Kulüp Müdürü";
+    r.mulakatiYapan = ["Mert Aydın", "Aslı Kurt", "Barış Ç."][i % 3];
+    r.aksiyonGecmisi = a.aksiyonGecmisi.map((k) =>
+      /eklendi/i.test(k.aksiyon) ? { ...k, yapan: `${r.mulakatiYapan} (Kulüp Müdürü)` } : k
+    );
+  }
   const kisa = !!r.akademiMulakatTipi?.startsWith("Kısa");
 
   // Eğitmen / pasif: işe giriş tarihine göre mezun olduğu akademi; aday eklenme tarihi ondan önce.
@@ -239,15 +251,15 @@ export function kaydiTutarliHaleGetir(a: AdayEgitmen, i: number): AdayEgitmen {
   const eklenme = coz(r.basvuruTarihi) ?? new Date(2026, 8, 1);
   const g = (gun: number) => ekle(eklenme, gun);
 
+  // Sistemdeki herkesin en az Fitness 1. kademe belgesi vardır: federasyon durumu yalnızca
+  // "N. Kademe belgem var" seçeneklerinden biridir (PRD 12.1).
+  r.federasyonKademeDurumu ??= FEDERASYON_KADEME_SECENEKLERI[2 + (i % 6)];
+
   // Mülakat formu (birinci belge setiyle birlikte doldurulur).
   if (asama >= 1) {
     r.cinsiyet ??= i % 2 === 0 ? "Erkek" : "Kadın";
     r.egitimBilgisi ??= EGITIM_BILGISI_SECENEKLERI[(i * 3) % EGITIM_BILGISI_SECENEKLERI.length];
     // İşe alınan eğitmenin en az Fitness 1. kademe belgesi vardır (PRD 12.1).
-    r.federasyonKademeDurumu ??=
-      asama >= 5
-        ? FEDERASYON_KADEME_SECENEKLERI[2 + (i % 4)]
-        : FEDERASYON_KADEME_SECENEKLERI[i % 6];
     r.antrenorlukGecmisiVarMi ??= i % 3 === 0 ? "Hayır" : "Evet";
     r.akademiMulakatTipi ??= "Standart Akademi Mülakatı (4 Hafta)";
     r.formKulup ??= r.kulup;

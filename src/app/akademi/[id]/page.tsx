@@ -216,10 +216,11 @@ export default function AkademiDetayPage() {
           {yetkili && yoklamaAlinabilirMi(akademi) && !yoklamaModu && (
             <button
               onClick={() => setYoklamaTaslak({})}
-              className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-black"
+              title="Akademinin ilk günü yoklama alınarak akademi başlatılır"
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-200"
             >
               <CalendarCheck className="h-4 w-4" />
-              Yoklama Al
+              Akademiyi Başlat
             </button>
           )}
           {yetkili && duzenlenebilirMi(akademi) && (
@@ -443,7 +444,7 @@ export default function AkademiDetayPage() {
                 disabled={!yoklamaTamam}
                 className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Yoklamayı Kaydet
+                Yoklamayı Kaydet ve Başlat
               </button>
             </div>
           </div>

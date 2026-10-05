@@ -238,9 +238,9 @@ export function SonrakiAksiyonKarti({
         if (donem && ik && yoklamaAlinabilirMi(donem)) {
           return {
             tip: "aksiyon",
-            baslik: "Akademi yoklamasını al",
+            baslik: "Akademiyi başlat",
             aciklama:
-              "Akademinin ilk günü geldi. Gelmeyen adaylar işaretlendiğinde sözleşmeleri kapatılır.",
+              "Akademinin ilk günü geldi. Yoklama alınarak akademi başlatılır; gelmeyen adayların sözleşmesi kapatılır.",
             bilgi: akademiBilgisi,
             buton: { tur: "link", label: "Akademiye git", href: `/akademi/${donem.id}` },
           };

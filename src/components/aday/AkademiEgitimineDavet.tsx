@@ -186,6 +186,182 @@ export function AkademiEgitimineDavet({
     });
   };
 
+  const davetIcerigi = (
+    <>
+      <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-100 bg-white">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Receipt className="h-4 w-4 text-zinc-400" />
+            <div>
+              <div className="text-sm font-medium text-zinc-800">
+                Vergi Levhası
+                {akademiDavetiDuzenlenebilir && <span className="ml-0.5 text-rose-500">*</span>}
+              </div>
+              {aday.vergiLevhasi?.tarih && (
+                <div className="text-xs text-zinc-400">{aday.vergiLevhasi.tarih}</div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge
+              label={belgeDurumuBilgi[aday.vergiLevhasi?.durum ?? "yuklenmedi"].label}
+              tone={belgeDurumuBilgi[aday.vergiLevhasi?.durum ?? "yuklenmedi"].tone}
+            />
+            {akademiDavetiDuzenlenebilir && (
+              <button
+                onClick={vergiLevhasiYukle}
+                className="flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {aday.vergiLevhasi?.durum === "yuklendi" ? "Yeniden Yükle" : "Yükle"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {!!aday.katilmadigiAkademiler?.length && (
+        <div className="mt-3 flex flex-col gap-1 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+          {aday.katilmadigiAkademiler.map((k) => (
+            <span key={k.akademiId}>
+              <span className="font-semibold">Akademiye katılmadı – {k.tarih}</span> ({k.akademiAdi}
+              )
+            </span>
+          ))}
+          {yenidenDavet && <span>Yeni bir akademiye davet etmek için bilgileri güncelleyin.</span>}
+        </div>
+      )}
+
+      {akademiDavetiDuzenlenebilir ? (
+        <div className="mt-4 flex flex-col gap-4">
+          {aday.akademiDavetiRedSebebi && (
+            <div className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              <span className="font-semibold">Reddedildi:</span> {aday.akademiDavetiRedSebebi}.
+              Düzelt ve yeniden gönder.
+            </div>
+          )}
+
+          <div>
+            <Etiket>BM onaylı kulüp bütçesinden konaklama yapılacak mı?</Etiket>
+            <div className="flex gap-2">
+              {(["Evet", "Hayır"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setBmKonaklama(v)}
+                  className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                    bmKonaklama === v
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="flex w-fit items-center gap-2 text-sm font-medium text-zinc-600">
+              <input
+                type="checkbox"
+                checked={akademiHesabiAcik}
+                onChange={(e) => setAkademiHesabiAcik(e.target.checked)}
+                className="h-4 w-4 rounded border-zinc-300"
+              />
+              Akademi hesabı açıldı mı?
+            </label>
+            {akademiHesabiAcik && (
+              <div className="mt-2">
+                <Etiket>Akademi User ID</Etiket>
+                <input
+                  value={akademiUserId}
+                  onChange={(e) => setAkademiUserId(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Etiket>Hangi akademiye dahil edilecek?</Etiket>
+            <select
+              value={akademiDonemiId}
+              onChange={(e) => setAkademiDonemiId(e.target.value)}
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+            >
+              <option value="">Seçiniz</option>
+              {uygunDonemler.map((d) => (
+                <option key={d.id} value={d.id} disabled={kontenjanDolu(d)}>
+                  {d.ad} · {d.baslangicTarihi}
+                  {kontenjanDolu(d)
+                    ? " — Kontenjan Dolu"
+                    : ` (${d.kayitlilar.length}/${d.kontenjan})`}
+                </option>
+              ))}
+            </select>
+            {seciliDonem && (
+              <p className="mt-1 text-xs text-zinc-500">
+                Akademi Başlangıç Tarihi:{" "}
+                <span className="font-semibold text-zinc-700">{seciliDonem.baslangicTarihi}</span>
+              </p>
+            )}
+            {uygunDonemler.length === 0 && (
+              <p className="mt-1 text-xs text-rose-500">
+                {aday.akademiMulakatTipi ?? "Bu"} tipinde tanımlı akademi yok; Akademi menüsünden
+                yeni akademi eklenmeli.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-1 text-xs text-zinc-400">
+              Ayakkabı ve kıyafet teslimatı akademiden mezun olmadan önce yapılır.
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Etiket>Ayakkabı Numarası</Etiket>
+                <Secim
+                  value={ayakkabiNo}
+                  onChange={setAyakkabiNo}
+                  secenekler={AYAKKABI_NUMARALARI}
+                />
+              </div>
+              <div>
+                <Etiket>Üst Beden</Etiket>
+                <Secim value={ustBeden} onChange={setUstBeden} secenekler={BEDENLER} />
+              </div>
+              <div>
+                <Etiket>Alt Beden</Etiket>
+                <Secim value={altBeden} onChange={setAltBeden} secenekler={BEDENLER} />
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={kaydet}
+            disabled={!zorunlularTamam}
+            className="self-start rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {girmeYetkisiVar ? "Kaydet" : "Onaya Gönder"}
+          </button>
+        </div>
+      ) : (
+        <div className="mt-3 grid grid-cols-2 gap-4 rounded-xl border border-zinc-100 bg-white px-4 py-3 text-sm sm:grid-cols-3">
+          <Bilgi label="BM Onaylı Konaklama">{aday.bmOnayliKonaklama ?? "—"}</Bilgi>
+          <Bilgi label="Akademi Hesabı">
+            {aday.akademiHesabiAcildiMi ? `Açıldı (${aday.akademiHesapUserId})` : "Açılmadı"}
+          </Bilgi>
+          <Bilgi label="Akademi">{kayitliDonem?.ad ?? "—"}</Bilgi>
+          <Bilgi label="Akademi Tipi">{aday.akademiMulakatTipi ?? "—"}</Bilgi>
+          <Bilgi label="Akademi Başlangıç Tarihi">{aday.yonlendirilecekAkademiTarihi ?? "—"}</Bilgi>
+          <Bilgi label="Ayakkabı / Beden">
+            {aday.ayakkabiNo ?? "—"} · Üst {aday.ustBeden ?? "—"} · Alt {aday.altBeden ?? "—"}
+          </Bilgi>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -207,185 +383,7 @@ export function AkademiEgitimineDavet({
           Bu adım, akademi mülakatı sonucu &quot;Olumlu&quot; olduğunda açılır.
         </div>
       ) : (
-        <>
-          <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-100 bg-white">
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <Receipt className="h-4 w-4 text-zinc-400" />
-                <div>
-                  <div className="text-sm font-medium text-zinc-800">
-                    Vergi Levhası
-                    {akademiDavetiDuzenlenebilir && <span className="ml-0.5 text-rose-500">*</span>}
-                  </div>
-                  {aday.vergiLevhasi?.tarih && (
-                    <div className="text-xs text-zinc-400">{aday.vergiLevhasi.tarih}</div>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  label={belgeDurumuBilgi[aday.vergiLevhasi?.durum ?? "yuklenmedi"].label}
-                  tone={belgeDurumuBilgi[aday.vergiLevhasi?.durum ?? "yuklenmedi"].tone}
-                />
-                {akademiDavetiDuzenlenebilir && (
-                  <button
-                    onClick={vergiLevhasiYukle}
-                    className="flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
-                  >
-                    <Upload className="h-3.5 w-3.5" />
-                    {aday.vergiLevhasi?.durum === "yuklendi" ? "Yeniden Yükle" : "Yükle"}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {!!aday.katilmadigiAkademiler?.length && (
-            <div className="mt-3 flex flex-col gap-1 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
-              {aday.katilmadigiAkademiler.map((k) => (
-                <span key={k.akademiId}>
-                  <span className="font-semibold">Akademiye katılmadı – {k.tarih}</span> (
-                  {k.akademiAdi})
-                </span>
-              ))}
-              {yenidenDavet && (
-                <span>Yeni bir akademiye davet etmek için bilgileri güncelleyin.</span>
-              )}
-            </div>
-          )}
-
-          {akademiDavetiDuzenlenebilir ? (
-            <div className="mt-4 flex flex-col gap-4">
-              {aday.akademiDavetiRedSebebi && (
-                <div className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
-                  <span className="font-semibold">Reddedildi:</span> {aday.akademiDavetiRedSebebi}.
-                  Düzelt ve yeniden gönder.
-                </div>
-              )}
-
-              <div>
-                <Etiket>BM onaylı kulüp bütçesinden konaklama yapılacak mı?</Etiket>
-                <div className="flex gap-2">
-                  {(["Evet", "Hayır"] as const).map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setBmKonaklama(v)}
-                      className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
-                        bmKonaklama === v
-                          ? "border-zinc-900 bg-zinc-900 text-white"
-                          : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="flex w-fit items-center gap-2 text-sm font-medium text-zinc-600">
-                  <input
-                    type="checkbox"
-                    checked={akademiHesabiAcik}
-                    onChange={(e) => setAkademiHesabiAcik(e.target.checked)}
-                    className="h-4 w-4 rounded border-zinc-300"
-                  />
-                  Akademi hesabı açıldı mı?
-                </label>
-                {akademiHesabiAcik && (
-                  <div className="mt-2">
-                    <Etiket>Akademi User ID</Etiket>
-                    <input
-                      value={akademiUserId}
-                      onChange={(e) => setAkademiUserId(e.target.value)}
-                      className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-brand"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <Etiket>Hangi akademiye dahil edilecek?</Etiket>
-                <select
-                  value={akademiDonemiId}
-                  onChange={(e) => setAkademiDonemiId(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand"
-                >
-                  <option value="">Seçiniz</option>
-                  {uygunDonemler.map((d) => (
-                    <option key={d.id} value={d.id} disabled={kontenjanDolu(d)}>
-                      {d.ad} · {d.baslangicTarihi}
-                      {kontenjanDolu(d)
-                        ? " — Kontenjan Dolu"
-                        : ` (${d.kayitlilar.length}/${d.kontenjan})`}
-                    </option>
-                  ))}
-                </select>
-                {seciliDonem && (
-                  <p className="mt-1 text-xs text-zinc-500">
-                    Akademi Başlangıç Tarihi:{" "}
-                    <span className="font-semibold text-zinc-700">
-                      {seciliDonem.baslangicTarihi}
-                    </span>
-                  </p>
-                )}
-                {uygunDonemler.length === 0 && (
-                  <p className="mt-1 text-xs text-rose-500">
-                    {aday.akademiMulakatTipi ?? "Bu"} tipinde tanımlı akademi yok; Akademi
-                    menüsünden yeni akademi eklenmeli.
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <div className="mb-1 text-xs text-zinc-400">
-                  Ayakkabı ve kıyafet teslimatı akademiden mezun olmadan önce yapılır.
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Etiket>Ayakkabı Numarası</Etiket>
-                    <Secim
-                      value={ayakkabiNo}
-                      onChange={setAyakkabiNo}
-                      secenekler={AYAKKABI_NUMARALARI}
-                    />
-                  </div>
-                  <div>
-                    <Etiket>Üst Beden</Etiket>
-                    <Secim value={ustBeden} onChange={setUstBeden} secenekler={BEDENLER} />
-                  </div>
-                  <div>
-                    <Etiket>Alt Beden</Etiket>
-                    <Secim value={altBeden} onChange={setAltBeden} secenekler={BEDENLER} />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={kaydet}
-                disabled={!zorunlularTamam}
-                className="self-start rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {girmeYetkisiVar ? "Kaydet" : "Onaya Gönder"}
-              </button>
-            </div>
-          ) : (
-            <div className="mt-3 grid grid-cols-2 gap-4 rounded-xl border border-zinc-100 bg-white px-4 py-3 text-sm sm:grid-cols-3">
-              <Bilgi label="BM Onaylı Konaklama">{aday.bmOnayliKonaklama ?? "—"}</Bilgi>
-              <Bilgi label="Akademi Hesabı">
-                {aday.akademiHesabiAcildiMi ? `Açıldı (${aday.akademiHesapUserId})` : "Açılmadı"}
-              </Bilgi>
-              <Bilgi label="Akademi">{kayitliDonem?.ad ?? "—"}</Bilgi>
-              <Bilgi label="Akademi Tipi">{aday.akademiMulakatTipi ?? "—"}</Bilgi>
-              <Bilgi label="Akademi Başlangıç Tarihi">
-                {aday.yonlendirilecekAkademiTarihi ?? "—"}
-              </Bilgi>
-              <Bilgi label="Ayakkabı / Beden">
-                {aday.ayakkabiNo ?? "—"} · Üst {aday.ustBeden ?? "—"} · Alt {aday.altBeden ?? "—"}
-              </Bilgi>
-            </div>
-          )}
-        </>
+        davetIcerigi
       )}
     </div>
   );
