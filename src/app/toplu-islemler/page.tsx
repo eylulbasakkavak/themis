@@ -7,7 +7,6 @@ import {
   ClipboardCheck,
   FileText,
   GraduationCap,
-  ShieldCheck,
   UserCheck,
   Users,
 } from "lucide-react";
@@ -53,16 +52,6 @@ const ISLEMLER: Islem[] = [
     icon: BookOpen,
     href: "/toplu-islemler/temel-egitim-sonucu",
     etiket: "Tablo · Eğitmen bazlı",
-  },
-  {
-    id: "vizeletme",
-    kategori: "Aday & Eğitmen",
-    baslik: "Toplu Vizeletme (Gelişim Semineri)",
-    aciklama:
-      "Vizesi geçmiş ya da 30 gün içinde bitecek sertifikalara gelişim semineri vizesini toplu ekleyin.",
-    icon: ShieldCheck,
-    href: "/toplu-islemler/vizeletme",
-    etiket: "Excel · Eğitmen bazlı",
   },
   {
     id: "akademi-sinav-sonucu",
