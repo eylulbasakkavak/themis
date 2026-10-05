@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
@@ -115,7 +115,7 @@ function tarihSirasi(tarih?: string): number {
   return g && a && y ? y * 10000 + a * 100 + g : 0;
 }
 
-export default function OnayBekleyenlerPage() {
+function OnayBekleyenlerIcerik() {
   const { adaylar, guncelleAday } = useAdaylar();
   const { donemler, adayKaydet } = useAkademiDonemleri();
   const { currentUser } = useCurrentUser();
@@ -832,5 +832,13 @@ export default function OnayBekleyenlerPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OnayBekleyenlerPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-zinc-400">Yükleniyor...</div>}>
+      <OnayBekleyenlerIcerik />
+    </Suspense>
   );
 }
