@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Lock, Receipt, Upload } from "lucide-react";
 import { Badge } from "@/components/Badge";
+import { BelgeIndirButonu } from "@/components/BelgeIndirButonu";
 import {
   akademiDavetiOnayKaydi,
   bugun,
@@ -207,6 +208,9 @@ export function AkademiEgitimineDavet({
               label={belgeDurumuBilgi[aday.vergiLevhasi?.durum ?? "yuklenmedi"].label}
               tone={belgeDurumuBilgi[aday.vergiLevhasi?.durum ?? "yuklenmedi"].tone}
             />
+            {aday.vergiLevhasi?.durum === "yuklendi" && (
+              <BelgeIndirButonu belge={aday.vergiLevhasi} aday={aday} />
+            )}
             {akademiDavetiDuzenlenebilir && (
               <button
                 onClick={vergiLevhasiYukle}
@@ -363,7 +367,10 @@ export function AkademiEgitimineDavet({
   );
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <div
+      id="akademi-davet"
+      className="scroll-mt-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+    >
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-zinc-900">Akademiye Davet</h3>
         {aday.gorusmeSonucu === "Olumlu" && (

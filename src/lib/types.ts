@@ -73,10 +73,15 @@ export type MobilAlanYonetimi = {
   sosyalMedya: boolean;
 };
 
+/** İhtar kaydının üst kategorisi. Yeni kategori gerekirse listeye eklenmesi yeterli. */
+export const IHTAR_KATEGORILERI = ["A", "B", "C", "D", "E"] as const;
+export type IhtarKategorisi = (typeof IHTAR_KATEGORILERI)[number];
+
 /** Eğitmen detay sayfasındaki İhtar Kaydı alt-özelliği. */
 export type IhtarKaydi = {
   id?: string;
   tarih: string;
+  kategori?: IhtarKategorisi;
   sebep: string;
   kaydeden: string;
   // PRD 11.4: KM/KMY'nin girdiği ihtar İK onayına düşer. Alan yoksa kayıt onaylı sayılır.
@@ -257,6 +262,14 @@ export type AdayEgitmen = {
   // "Evet" seçildiğinde: antrenörlük geçmişi için yapılandırılmış seçenekler henüz
   // netleşmedi (PRD: "seçenekler konuşulup belirlenecek") — geçici serbest metin.
   antrenorlukGecmisiDetay?: string;
+  // Antrenörlük geçmişi "Evet" ise mülakat formunda sorulan yapılandırılmış alanlar;
+  // antrenorlukGecmisiDetay formda "Deneyim özeti" olarak gösterilir.
+  grupDersiVerebilir?: boolean;
+  toplamDeneyim?: string;
+  sonGorevYeri?: string;
+  // Mülakat formunu dolduran kişi (varsayılan: mulakatiYapan) ve formun sonundaki serbest not.
+  formMulakatiYapan?: string;
+  mulakatDegerlendirmeNotu?: string;
   akademiMulakatTipi?: AkademiTipi;
   ilkBelgeSeti: Belge[];
   ikinciBelgeSeti: Belge[];

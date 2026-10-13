@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/Badge";
 import { AdayDetayTabs } from "@/components/aday/AdayDetayTabs";
 import { AkademiEgitimineDavet } from "@/components/aday/AkademiEgitimineDavet";
@@ -9,7 +9,7 @@ import { AkademiMulakatiSonucu } from "@/components/aday/AkademiMulakatiSonucu";
 import { BelgeYonetimi } from "@/components/aday/BelgeYonetimi";
 import { GenelBilgi } from "@/components/aday/GenelBilgi";
 import { IhtarKaydi } from "@/components/aday/IhtarKaydi";
-import { SonrakiAksiyonKarti } from "@/components/aday/SonrakiAksiyonKarti";
+import { SonrakiAksiyonKarti, type ProfilSekmesi } from "@/components/aday/SonrakiAksiyonKarti";
 import { EgitmenIslemleriPaneli } from "@/components/egitmen/EgitmenIslemleriPaneli";
 import { SertifikaYonetimi } from "@/components/egitmen/SertifikaYonetimi";
 import { SozlesmeGecmisi } from "@/components/aday/SozlesmeGecmisi";
@@ -25,7 +25,27 @@ export function AdayDetayIcerik({
   onAdayGuncelle?: (yeni: AdayEgitmen) => void;
   baslangicTab?: string;
 }) {
-  const [sekme, setSekme] = useState<string>(baslangicTab ?? "genel");
+  // "akademi-sinav" sekme ikiye bölünmeden önceki id'dir; kayıtlı bildirim linkleri için korunur.
+  const [sekme, setSekme] = useState<string>(
+    baslangicTab === "akademi-sinav" ? "akademi-mulakat" : (baslangicTab ?? "genel")
+  );
+  // Davet aksiyonundan veya davet linkinden gelindiğinde sekmenin başı yerine doğrudan
+  // Akademiye Davet kutusuna kaydırılır; sekmeye elle tıklamak kaydırmaz.
+  const [kaydirilacak, setKaydirilacak] = useState<string | null>(
+    sekme === "akademi-mulakat" ? "akademi-davet" : null
+  );
+  useEffect(() => {
+    if (!kaydirilacak) return;
+    const kare = requestAnimationFrame(() => {
+      document.getElementById(kaydirilacak)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setKaydirilacak(null);
+    });
+    return () => cancelAnimationFrame(kare);
+  }, [sekme, kaydirilacak]);
+  const sekmeAc = (s: ProfilSekmesi) => {
+    setSekme(s);
+    if (s === "akademi-mulakat") setKaydirilacak("akademi-davet");
+  };
   const durum = surecDurumuGorunumu(aday);
 
   return (
@@ -76,7 +96,7 @@ export function AdayDetayIcerik({
                     key={aday.id}
                     aday={aday}
                     onAdayGuncelle={onAdayGuncelle}
-                    onSekmeAc={setSekme}
+                    onSekmeAc={sekmeAc}
                   />
                   {aday.surecDurumu === "egitmen" && onAdayGuncelle && (
                     <EgitmenIslemleriPaneli aday={aday} onAdayGuncelle={onAdayGuncelle} />
@@ -96,15 +116,19 @@ export function AdayDetayIcerik({
             content: <SertifikaYonetimi aday={aday} onAdayGuncelle={onAdayGuncelle} />,
           },
           {
-            id: "akademi-sinav",
-            label: "Akademi & Sınav Sonuçları",
+            id: "akademi-mulakat",
+            label: "Akademi Mülakatı & Akademiye Davet",
             content: (
               <div className="flex flex-col gap-4">
                 <AkademiMulakatiSonucu aday={aday} onAdayGuncelle={onAdayGuncelle} />
                 <AkademiEgitimineDavet aday={aday} onAdayGuncelle={onAdayGuncelle} />
-                <AkademiSinavSonuclari aday={aday} />
               </div>
             ),
+          },
+          {
+            id: "sinav-sonuclari",
+            label: "Akademi Sınav Sonuçları",
+            content: <AkademiSinavSonuclari aday={aday} />,
           },
           {
             id: "sozlesme",

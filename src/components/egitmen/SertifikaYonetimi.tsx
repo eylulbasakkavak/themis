@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { Badge } from "@/components/Badge";
+import { BelgeIndirButonu } from "@/components/BelgeIndirButonu";
 import { bugun, inputTarihindenCevir, tarihCoz, tarihYaz } from "@/lib/akademi";
 import { useBildirimler } from "@/lib/BildirimlerContext";
 import { ikYetkisiVarMi, KULLANICILAR, useCurrentUser } from "@/lib/CurrentUserContext";
@@ -704,6 +705,7 @@ export function SertifikaYonetimi({
                   <span className="flex min-w-0 items-center gap-1.5 text-zinc-500">
                     <FileText className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
                     <span className="truncate">{s.belge?.ad ?? "—"}</span>
+                    {s.belge && <BelgeIndirButonu belge={s.belge} aday={aday} />}
                   </span>
                   <span className="flex items-center gap-2">
                     {s.id === fitness?.id ? (
@@ -776,8 +778,9 @@ export function SertifikaYonetimi({
                         {gecmisAcik === s.id && (
                           <ul className="mt-2 space-y-1 text-xs text-zinc-500">
                             {gecmis.map((v) => (
-                              <li key={v.id}>
+                              <li key={v.id} className="flex items-center gap-2">
                                 {v.donem} · {v.bitisTarihi} · {v.belge.ad}
+                                <BelgeIndirButonu belge={v.belge} aday={aday} />
                               </li>
                             ))}
                           </ul>
@@ -916,6 +919,7 @@ export function SertifikaYonetimi({
                         className="flex items-center gap-1.5 rounded-full border border-zinc-200 px-2 py-0.5"
                       >
                         {s.kademe}. Kademe · {s.belgeTarihi}
+                        {s.belge && <BelgeIndirButonu belge={s.belge} aday={aday} />}
                         {!s.onaylandi && <OnayRozeti kayit={s} />}
                         {bekleyenMi(s) && onayLinki(`${aday.id}-sertifika-${s.id}`)}
                       </span>

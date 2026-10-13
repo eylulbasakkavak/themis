@@ -4,10 +4,32 @@ import {
   BEDENLER,
   EGITIM_BILGISI_SECENEKLERI,
   FEDERASYON_KADEME_SECENEKLERI,
+  TOPLAM_DENEYIM_SECENEKLERI,
 } from "./egitmenSecenekleri";
 import { KULUPLER } from "./kulupler";
 import { MULAKAT_KRITERLERI } from "./mulakatDegerlendirme";
 import type { AdayEgitmen, AksiyonKaydi, Belge, SurecDurumu } from "./types";
+
+const ORNEK_SON_GOREV_YERLERI = [
+  "Özel spor stüdyosu",
+  "Belediye spor merkezi",
+  "Otel fitness merkezi",
+  "Serbest PT",
+  "Üniversite spor kulübü",
+];
+const ORNEK_DENEYIM_OZETLERI = [
+  "Fonksiyonel antrenman ve grup dersleri alanında aktif çalıştı.",
+  "Birebir PT ağırlıklı çalıştı, kilo verme programları hazırladı.",
+  "Cycling ve step derslerini düzenli olarak verdi.",
+  "Pilates ve esneklik odaklı grup dersleri yürüttü.",
+  "Kuvvet antrenmanı ve sporcu performansı üzerine çalıştı.",
+];
+const ORNEK_DEGERLENDIRME_NOTLARI = [
+  "İletişimi güçlü, motivasyonu yüksek. Akademiye uygun.",
+  "Teknik bilgisi iyi; grup yönetimi akademide geliştirilmeli.",
+  "Güler yüzlü ve enerjik, tecrübesini iyi aktarıyor.",
+  "Deneyimi sınırlı ancak öğrenmeye açık.",
+];
 
 /**
  * Örnek verinin tutarlılığı: her kişi bulunduğu aşamaya gelene kadarki tüm adımların verisine
@@ -258,10 +280,25 @@ export function kaydiTutarliHaleGetir(a: AdayEgitmen, i: number): AdayEgitmen {
   // Mülakat formu (birinci belge setiyle birlikte doldurulur).
   if (asama >= 1) {
     r.cinsiyet ??= i % 2 === 0 ? "Erkek" : "Kadın";
-    r.egitimBilgisi ??= EGITIM_BILGISI_SECENEKLERI[(i * 3) % EGITIM_BILGISI_SECENEKLERI.length];
+    r.egitimBilgisi ??= EGITIM_BILGISI_SECENEKLERI[(i * 4) % EGITIM_BILGISI_SECENEKLERI.length];
     // İşe alınan eğitmenin en az Fitness 1. kademe belgesi vardır (PRD 12.1).
     r.antrenorlukGecmisiVarMi ??= i % 3 === 0 ? "Hayır" : "Evet";
     r.akademiMulakatTipi ??= "Standart Akademi Mülakatı (4 Hafta)";
+    // Kısa Dönem'e yönlendirilen adayın antrenörlük geçmişi ve grup dersi becerisi vardır.
+    if (r.akademiMulakatTipi === "Kısa Dönem Akademi Mülakatı (1 Hafta)") {
+      r.antrenorlukGecmisiVarMi = "Evet";
+    }
+    if (r.antrenorlukGecmisiVarMi === "Evet") {
+      // Kısa Dönem Akademi yalnızca en az 2 grup dersi verebilenlere açıktır.
+      r.grupDersiVerebilir ??=
+        r.akademiMulakatTipi === "Kısa Dönem Akademi Mülakatı (1 Hafta)" || i % 2 === 0;
+      r.toplamDeneyim ??= TOPLAM_DENEYIM_SECENEKLERI[i % TOPLAM_DENEYIM_SECENEKLERI.length];
+      r.sonGorevYeri ??= ORNEK_SON_GOREV_YERLERI[i % ORNEK_SON_GOREV_YERLERI.length];
+      r.antrenorlukGecmisiDetay ??= ORNEK_DENEYIM_OZETLERI[i % ORNEK_DENEYIM_OZETLERI.length];
+    }
+    r.formMulakatiYapan ??= r.mulakatiYapan;
+    r.mulakatDegerlendirmeNotu ??=
+      i % 3 === 2 ? undefined : ORNEK_DEGERLENDIRME_NOTLARI[i % ORNEK_DEGERLENDIRME_NOTLARI.length];
     r.formKulup ??= r.kulup;
     r.formTarih ??= iso(g(2));
     r.formAdSoyad ??= `${r.ad} ${r.soyad}`;

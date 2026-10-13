@@ -13,6 +13,10 @@ import {
   ISTIHDAM_TIPLERI,
   telefonMaskele,
 } from "@/lib/egitmenSecenekleri";
+import { donemEtiketi, efektifLig, karneHaricSebebi, LIG_TONU } from "@/lib/karne";
+import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
+import { useKarneler } from "@/lib/KarnelerContext";
+import { toneClasses } from "@/lib/status";
 import { fitnessSertifikasi, VIZE_DURUMU_BILGI, vizeDurumu } from "@/lib/sertifika";
 import type { AdayEgitmen } from "@/lib/types";
 
@@ -134,15 +138,34 @@ export function EgitmenDetayIcerik({
   };
 
   const fitness = fitnessSertifikasi(aday);
+  const { karneler, haricKayitlari, sabitlemeKayitlari } = useKarneler();
+  const { donemler } = useAkademiDonemleri();
+  const akademiDonemi = donemler.find((d) => d.id === aday.akademiDonemiId);
+  // Karne statüsü (lig) en son yüklenen dönemin final puanından, Eğitmen Karnesi
+  // sayfasıyla aynı kuralla (sabitleme / izin dönüşü dahil) türetilir.
+  const sonKarne = karneler
+    .filter((k) => k.egitmenId === aday.id)
+    .sort((a, b) => b.donem.localeCompare(a.donem))[0];
+  const karneHaric = karneHaricSebebi(aday, haricKayitlari);
+  const karneLigi = sonKarne
+    ? efektifLig(aday.id, sonKarne.finalPuan, haricKayitlari, sabitlemeKayitlari)
+    : null;
   const grid = "grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2";
   const altBaslik = "mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400";
+  // Mülakat Formu'ndan gelen alanlar canlı eğitmende değiştirilemez (form da salt okunurdur).
+  const mulakatFormuKilitli = aday.surecDurumu === "egitmen";
+  const mulakatAlaniDuzenle = duzenle && !mulakatFormuKilitli;
 
   return (
     <div className="flex flex-col gap-4">
       <Bolum
         baslik="Kişisel ve Mesleki Bilgiler"
         aksiyon={
-          !duzenle && onAdayGuncelle ? (
+          duzenle && mulakatFormuKilitli ? (
+            <span className="text-xs text-zinc-400">
+              Mülakat Formu&apos;ndan gelen alanlar canlı eğitmende değiştirilemez.
+            </span>
+          ) : !duzenle && onAdayGuncelle ? (
             <button
               onClick={duzenlemeyeBasla}
               className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
@@ -161,7 +184,7 @@ export function EgitmenDetayIcerik({
               label="Federasyon Durumu"
               value={taslak.federasyonKademeDurumu}
               secenekler={FEDERASYON_KADEME_SECENEKLERI}
-              duzenle={duzenle}
+              duzenle={mulakatAlaniDuzenle}
               onChange={(v) => setTaslak({ ...taslak, federasyonKademeDurumu: v || undefined })}
             />
           </div>
@@ -191,7 +214,7 @@ export function EgitmenDetayIcerik({
             label="TC Kimlik No"
             value={taslak.tcKimlikNo}
             goster={aday.tcKimlikNo}
-            duzenle={duzenle}
+            duzenle={mulakatAlaniDuzenle}
             onChange={(v) => setTaslak({ ...taslak, tcKimlikNo: v || undefined })}
           />
           <DuzenlenebilirMetin
@@ -206,9 +229,12 @@ export function EgitmenDetayIcerik({
             label="Cinsiyet"
             value={taslak.cinsiyet}
             secenekler={CINSIYET_SECENEKLERI}
-            duzenle={duzenle}
+            duzenle={mulakatAlaniDuzenle}
             onChange={(v) =>
-              setTaslak({ ...taslak, cinsiyet: (v as AdayEgitmen["cinsiyet"]) || undefined })
+              setTaslak({
+                ...taslak,
+                cinsiyet: (v as AdayEgitmen["cinsiyet"]) || undefined,
+              })
             }
           />
           <Alan label="Telefon">{telefonMaskele(aday.telefon)}</Alan>
@@ -241,7 +267,7 @@ export function EgitmenDetayIcerik({
             label="Akademi Tipi"
             value={taslak.akademiMulakatTipi}
             secenekler={AKADEMI_MULAKAT_SECENEKLERI}
-            duzenle={duzenle}
+            duzenle={mulakatAlaniDuzenle}
             onChange={(v) =>
               setTaslak({
                 ...taslak,
@@ -250,6 +276,32 @@ export function EgitmenDetayIcerik({
             }
           />
           <Alan label="Akademi Başlangıç Tarihi">{aday.yonlendirilecekAkademiTarihi || "—"}</Alan>
+          {/* Bitiş tarihi yalnızca canlı eğitmende; diğer aşamalarda sadece başlangıç gösterilir. */}
+          {aday.surecDurumu === "egitmen" && (
+            <Alan label="Akademi Bitiş Tarihi">{akademiDonemi?.bitisTarihi || "—"}</Alan>
+          )}
+          {aday.surecDurumu === "egitmen" && (
+            <Alan label="Eğitmen Karne Statüsü">
+              {karneHaric ? (
+                <span className="font-medium text-zinc-500">
+                  Karneye dahil değil · {karneHaric}
+                </span>
+              ) : karneLigi && sonKarne ? (
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${toneClasses[LIG_TONU[karneLigi]]}`}
+                  >
+                    {karneLigi}
+                  </span>
+                  <span className="text-xs font-medium text-zinc-400">
+                    {donemEtiketi(sonKarne.donem)}
+                  </span>
+                </span>
+              ) : (
+                "—"
+              )}
+            </Alan>
+          )}
         </div>
         <h4 className={`${altBaslik} mt-6 border-t border-zinc-100 pt-5`}>Mesleki</h4>
         <div className={grid}>
@@ -265,7 +317,7 @@ export function EgitmenDetayIcerik({
             label="Öğrenim Durumu"
             value={taslak.egitimBilgisi}
             secenekler={EGITIM_BILGISI_SECENEKLERI}
-            duzenle={duzenle}
+            duzenle={mulakatAlaniDuzenle}
             onChange={(v) => setTaslak({ ...taslak, egitimBilgisi: v || undefined })}
           />
           <DuzenlenebilirMetin

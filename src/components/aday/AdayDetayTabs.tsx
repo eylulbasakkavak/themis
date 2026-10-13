@@ -22,12 +22,12 @@ export function AdayDetayTabs({
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
-      <div className="flex gap-1 border-b border-zinc-100 px-4 pt-2">
+      <div className="flex gap-1 overflow-x-auto border-b border-zinc-100 px-4 pt-2">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setActive(t.id)}
-            className={`border-b-2 px-3 pb-2.5 text-sm font-medium transition-colors ${
+            className={`shrink-0 whitespace-nowrap border-b-2 px-3 pb-2.5 text-sm font-medium transition-colors ${
               active === t.id
                 ? "border-brand text-zinc-900"
                 : "border-transparent text-zinc-400 hover:text-zinc-700"

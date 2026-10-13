@@ -498,4 +498,7 @@ export const egitmenKarneleri: EgitmenKarnesi[] = [
   ...elleGirilenGecmisKarneler,
   ...sentetikKarnelerUret(21, 43, 100, "2026-2", sentetikAlanlarUret, "05.08.2026"),
   ...sentetikKarnelerUret(21, 43, 300, "2026-1", sentetikGecmisAlanlarUret, "05.07.2026"),
+  // egitmenUret.ts ile üretilen eğitmenler (ID 400+); profilde karne statüsü boş kalmasın.
+  ...sentetikKarnelerUret(400, 75, 500, "2026-2", sentetikAlanlarUret, "05.08.2026"),
+  ...sentetikKarnelerUret(400, 75, 700, "2026-1", sentetikGecmisAlanlarUret, "05.07.2026"),
 ];

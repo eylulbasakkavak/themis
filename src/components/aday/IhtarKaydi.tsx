@@ -6,7 +6,7 @@ import { Badge } from "@/components/Badge";
 import { bugun, inputTarihindenCevir, inputTarihine, tarihYaz } from "@/lib/akademi";
 import { useBildirimler } from "@/lib/BildirimlerContext";
 import { ikYetkisiVarMi, KULLANICILAR, useCurrentUser } from "@/lib/CurrentUserContext";
-import type { AdayEgitmen } from "@/lib/types";
+import { IHTAR_KATEGORILERI, type AdayEgitmen, type IhtarKategorisi } from "@/lib/types";
 
 /**
  * İhtar kayıtları (PRD 11.4): tarih ve sebep girilir, kaydı giren otomatik yazılır. Genel onay
@@ -23,11 +23,12 @@ export function IhtarKaydi({
   const { bildirimEkle } = useBildirimler();
   const [ihtarSebep, setIhtarSebep] = useState("");
   const [ihtarTarihi, setIhtarTarihi] = useState(inputTarihine(tarihYaz(bugun())));
+  const [ihtarKategori, setIhtarKategori] = useState<IhtarKategorisi | "">("");
   const ik = ikYetkisiVarMi(currentUser.rol);
   const kayitlar = aday.ihtarKayitlari ?? [];
 
   const ihtarEkle = () => {
-    if (!ihtarSebep.trim() || !ihtarTarihi) return;
+    if (!ihtarSebep.trim() || !ihtarTarihi || !ihtarKategori) return;
     const id = `ih${Date.now()}`;
     const yapan = `${currentUser.ad} (${currentUser.rol})`;
     onAdayGuncelle?.({
@@ -37,6 +38,7 @@ export function IhtarKaydi({
         {
           id,
           tarih: inputTarihindenCevir(ihtarTarihi),
+          kategori: ihtarKategori,
           sebep: ihtarSebep.trim(),
           kaydeden: yapan,
           onaylandi: ik,
@@ -56,6 +58,7 @@ export function IhtarKaydi({
       });
     }
     setIhtarSebep("");
+    setIhtarKategori("");
   };
 
   return (
@@ -73,6 +76,7 @@ export function IhtarKaydi({
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 font-medium text-zinc-800">
                   {k.tarih}
+                  {k.kategori && <Badge label={`Kategori ${k.kategori}`} tone="gray" />}
                   {bekliyor && <Badge label="İK onayı bekliyor" tone="orange" />}
                   {k.redSebebi && (
                     <span title={k.redSebebi}>
@@ -111,6 +115,21 @@ export function IhtarKaydi({
               aria-label="İhtar tarihi"
               className="rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-brand"
             />
+            <select
+              value={ihtarKategori}
+              onChange={(e) => setIhtarKategori(e.target.value as IhtarKategorisi | "")}
+              aria-label="Üst kategori"
+              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-brand"
+            >
+              <option value="" disabled>
+                Üst kategori
+              </option>
+              {IHTAR_KATEGORILERI.map((kat) => (
+                <option key={kat} value={kat}>
+                  {kat}
+                </option>
+              ))}
+            </select>
             <input
               value={ihtarSebep}
               onChange={(e) => setIhtarSebep(e.target.value)}
@@ -119,7 +138,7 @@ export function IhtarKaydi({
             />
             <button
               onClick={ihtarEkle}
-              disabled={!ihtarSebep.trim() || !ihtarTarihi}
+              disabled={!ihtarSebep.trim() || !ihtarTarihi || !ihtarKategori}
               className="shrink-0 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
             >
               {ik ? "İhtar Ekle" : "Onaya Gönder"}

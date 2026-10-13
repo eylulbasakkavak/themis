@@ -15,6 +15,7 @@ import {
   kaydiTutarliHaleGetir,
   ornekSinavDurumu,
 } from "./veriTutarliligi";
+import { IHTAR_KATEGORILERI } from "./types";
 import type { AdayEgitmen, EgitmenSertifikasi, TemelEgitimSonucu } from "./types";
 
 const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
@@ -146,7 +147,7 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     sporGecmisi: "6 yıl yüzme antrenörlüğü, cankurtaranlık sertifikası",
     isDeneyimi: "2 yıl belediye spor okulu eğitmenliği",
     cinsiyet: "Kadın",
-    egitimBilgisi: "Ön Lisans - Spor Bilimleri Bölümü (Mezun)",
+    egitimBilgisi: "Ön Lisans - Spor Bilimleri Bölümleri (Mezun)",
     federasyonKademeDurumu: "1. Kademe belgem var. 2. Kademe temel eğitimim yok.",
     antrenorlukGecmisiVarMi: "Evet",
     antrenorlukGecmisiDetay: "6 yıl yüzme antrenörlüğü, cankurtaranlık sertifikası",
@@ -993,7 +994,7 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     sporGecmisi: "Yüzme antrenörü, cankurtaranlık sertifikası, 6 yıl deneyim",
     isDeneyimi: "4 yıl kendi bağımsız yüzme dersleri",
     cinsiyet: "Kadın",
-    egitimBilgisi: "Ön Lisans - Spor Bilimleri Bölümü (Mezun)",
+    egitimBilgisi: "Ön Lisans - Spor Bilimleri Bölümleri (Mezun)",
     federasyonKademeDurumu: "2. Kademe belgem var.",
     antrenorlukGecmisiVarMi: "Evet",
     antrenorlukGecmisiDetay: "6 yıl yüzme antrenörlüğü, cankurtaranlık sertifikası",
@@ -1681,6 +1682,7 @@ function raporAlanlariniTamamla(a: AdayEgitmen, i: number): AdayEgitmen {
             {
               id: `${a.id}-ihtar-1`,
               tarih: gunSonra(-40 - i),
+              kategori: IHTAR_KATEGORILERI[i % IHTAR_KATEGORILERI.length],
               sebep: ORNEK_IHTAR_SEBEPLERI[i % ORNEK_IHTAR_SEBEPLERI.length],
               kaydeden: "Elif Su (İK)",
             },
@@ -1690,6 +1692,7 @@ function raporAlanlariniTamamla(a: AdayEgitmen, i: number): AdayEgitmen {
                   {
                     id: `${a.id}-ihtar-2`,
                     tarih: gunSonra(-3),
+                    kategori: IHTAR_KATEGORILERI[(i + 1) % IHTAR_KATEGORILERI.length],
                     sebep: ORNEK_IHTAR_SEBEPLERI[(i + 1) % ORNEK_IHTAR_SEBEPLERI.length],
                     kaydeden: "Mert Aydın (Kulüp Müdürü)",
                     onaylandi: false,

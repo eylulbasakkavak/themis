@@ -51,14 +51,14 @@ export const CINSIYET_SECENEKLERI: NonNullable<AdayEgitmen["cinsiyet"]>[] = ["Ka
 
 export const EGITIM_BILGISI_SECENEKLERI = [
   "Lise mezunu",
-  "Ön Lisans - Spor Bilimleri Bölümü (Devam ediyor)",
-  "Ön Lisans - Spor Bilimleri Bölümü (Mezun)",
+  "Ön Lisans - Spor Bilimleri Bölümleri (Devam ediyor)",
+  "Ön Lisans - Spor Bilimleri Bölümleri (Mezun)",
   "Ön Lisans - Alan Dışı Bölüm (Devam ediyor)",
   "Ön Lisans - Alan Dışı Bölüm (Mezun)",
   "Lisans - Spor Bilimleri Fakültesi veya Besyo (Devam ediyor)",
   "Lisans - Spor Bilimleri Fakültesi veya Besyo (Mezun)",
-  "Lisans - Alan Dışı Bölüm (Devam ediyor)",
   "Lisans - Alan Dışı Bölüm (Mezun)",
+  "Lisans - Alan Dışı Bölüm (Devam ediyor)",
 ];
 
 export const FEDERASYON_KADEME_SECENEKLERI = [
@@ -73,6 +73,8 @@ export const FEDERASYON_KADEME_SECENEKLERI = [
   "Denklik Bekliyor (Mezun)",
   "Denklik Bekliyor (Öğrenci)",
 ];
+
+export const TOPLAM_DENEYIM_SECENEKLERI = ["0–1 yıl", "1–3 yıl", "3–5 yıl", "5–10 yıl", "10+ yıl"];
 
 export const AKADEMI_MULAKAT_SECENEKLERI: AkademiTipi[] = [
   "Standart Akademi Mülakatı (4 Hafta)",

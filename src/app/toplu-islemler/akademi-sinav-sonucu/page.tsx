@@ -223,7 +223,7 @@ export default function TopluAkademiSinavSonucuPage() {
             <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               {sonuc.kaydedilen} eğitmenin sınav sonucu kaydedildi ({sonuc.gecti} geçti,{" "}
-              {sonuc.kaldi} kaldı). Sonuçlar eğitmen profillerindeki &quot;Akademi &amp; Sınav
+              {sonuc.kaldi} kaldı). Sonuçlar eğitmen profillerindeki &quot;Akademi Sınav
               Sonuçları&quot; sekmesinde görünür.
             </div>
           ) : (

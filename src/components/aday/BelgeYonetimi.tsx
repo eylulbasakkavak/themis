@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Eye, FileSignature, FileText, Lock, RotateCw, Send, Upload, X } from "lucide-react";
 import { Badge } from "@/components/Badge";
+import { BelgeIndirButonu } from "@/components/BelgeIndirButonu";
 import {
   belgeSetiTamamMi,
   ikinciBelgeSetiOnaylanmisMi,
@@ -14,11 +15,38 @@ import { useBildirimler } from "@/lib/BildirimlerContext";
 import { ikYetkisiVarMi, KULLANICILAR, useCurrentUser } from "@/lib/CurrentUserContext";
 import { belgeDurumuBilgi } from "@/lib/status";
 import type { AdayEgitmen, Belge } from "@/lib/types";
-import { MulakatFormuModal } from "./MulakatFormuModal";
+import { MulakatFormuModal, type MulakatFormuVerisi } from "./MulakatFormuModal";
 
 const MULAKAT_FORMU_ADI = "Mülakat Formu";
 
+/** İndirilen Mülakat Formu belgesine formdaki cevaplar yazılır. */
+function mulakatFormuSatirlari(a: AdayEgitmen): string[] {
+  const satirlar: [string, string | undefined][] = [
+    ["Kulüp", a.formKulup ?? a.kulup],
+    ["Tarih", a.formTarih],
+    ["Mülakatı Yapan", a.formMulakatiYapan ?? a.mulakatiYapan],
+    ["Adayın Adı Soyadı", a.formAdSoyad ?? `${a.ad} ${a.soyad}`],
+    ["TC Kimlik No", a.tcKimlikNo],
+    ["Cinsiyet", a.cinsiyet],
+    ["Eğitim Bilgileri", a.egitimBilgisi],
+    ["Federasyon Kademe Belge Durumu", a.federasyonKademeDurumu],
+    ["Antrenörlük Geçmişi", a.antrenorlukGecmisiVarMi],
+    ...(a.antrenorlukGecmisiVarMi === "Evet"
+      ? ([
+          ["En az 2 grup dersi verebilir", a.grupDersiVerebilir ? "Evet" : "Hayır"],
+          ["Toplam Deneyim", a.toplamDeneyim],
+          ["Son Görev Yeri", a.sonGorevYeri],
+          ["Deneyim Özeti", a.antrenorlukGecmisiDetay],
+        ] as [string, string | undefined][])
+      : []),
+    ["Yönlendirilen Akademi", a.akademiMulakatTipi],
+    ["Değerlendirme Notu", a.mulakatDegerlendirmeNotu],
+  ];
+  return satirlar.map(([k, v]) => `${k}: ${v || "—"}`);
+}
+
 function BelgeGrubu({
+  aday,
   baslik,
   onaylandi,
   reddedildi,
@@ -30,6 +58,7 @@ function BelgeGrubu({
   araBolum,
   ozelSatir,
 }: {
+  aday: AdayEgitmen;
   baslik: string;
   onaylandi?: boolean;
   reddedildi?: boolean;
@@ -91,6 +120,7 @@ function BelgeGrubu({
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
+                          <BelgeIndirButonu belge={b} aday={aday} />
                           <button
                             onClick={() => onYukle(i)}
                             title="Yeniden Yükle"
@@ -134,6 +164,9 @@ function BelgeGrubu({
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-zinc-200 py-10 text-zinc-400">
               <FileText className="h-10 w-10" />
               <p className="text-xs">{onizleme.tarih} tarihinde yüklendi</p>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <BelgeIndirButonu belge={onizleme} aday={aday} etiket="İndir" />
             </div>
           </div>
         </div>
@@ -181,23 +214,16 @@ export function BelgeYonetimi({
     const yeniSurecDurumu = belgeSetiTamamMi(yeniIlkSet)
       ? "ikinci_belge_seti_bekleniyor"
       : aday.surecDurumu;
-    onAdayGuncelle?.({ ...aday, ilkBelgeSeti: yeniIlkSet, surecDurumu: yeniSurecDurumu });
+    onAdayGuncelle?.({
+      ...aday,
+      ilkBelgeSeti: yeniIlkSet,
+      surecDurumu: yeniSurecDurumu,
+    });
   };
 
   const mulakatFormuBelge = aday.ilkBelgeSeti.find((b) => b.ad === MULAKAT_FORMU_ADI);
 
-  const mulakatFormuKaydet = (veri: {
-    kulup: string;
-    tarih: string;
-    adSoyad: string;
-    cinsiyet: NonNullable<AdayEgitmen["cinsiyet"]>;
-    egitimBilgisi: string;
-    federasyonKademeDurumu: string;
-    denklikMezuniyetTarihi: string;
-    antrenorlukGecmisiVarMi: NonNullable<AdayEgitmen["antrenorlukGecmisiVarMi"]>;
-    antrenorlukGecmisiDetay: string;
-    akademiMulakatTipi: NonNullable<AdayEgitmen["akademiMulakatTipi"]>;
-  }) => {
+  const mulakatFormuKaydet = (veri: MulakatFormuVerisi) => {
     const yeniIlkSet = aday.ilkBelgeSeti.map((b) =>
       b.ad === MULAKAT_FORMU_ADI ? { ...b, durum: "yuklendi" as const, tarih: "Bugün" } : b
     );
@@ -210,12 +236,18 @@ export function BelgeYonetimi({
       formKulup: veri.kulup,
       formTarih: veri.tarih,
       formAdSoyad: veri.adSoyad,
+      tcKimlikNo: veri.tcKimlikNo,
+      formMulakatiYapan: veri.mulakatiYapan,
       cinsiyet: veri.cinsiyet,
       egitimBilgisi: veri.egitimBilgisi,
       federasyonKademeDurumu: veri.federasyonKademeDurumu,
       denklikMezuniyetTarihi: veri.denklikMezuniyetTarihi || undefined,
       antrenorlukGecmisiVarMi: veri.antrenorlukGecmisiVarMi,
       antrenorlukGecmisiDetay: veri.antrenorlukGecmisiDetay || undefined,
+      grupDersiVerebilir: veri.grupDersiVerebilir,
+      toplamDeneyim: veri.toplamDeneyim || undefined,
+      sonGorevYeri: veri.sonGorevYeri || undefined,
+      mulakatDegerlendirmeNotu: veri.degerlendirmeNotu || undefined,
       akademiMulakatTipi: veri.akademiMulakatTipi,
       surecDurumu: yeniSurecDurumu,
     });
@@ -235,7 +267,10 @@ export function BelgeYonetimi({
     onAdayGuncelle?.({
       ...yeni,
       ...(otonomTamamlaniyor
-        ? { ikinciBelgeSetiOnaylandi: true, surecDurumu: "mulakat_sonucu_bekleniyor" as const }
+        ? {
+            ikinciBelgeSetiOnaylandi: true,
+            surecDurumu: "mulakat_sonucu_bekleniyor" as const,
+          }
         : {}),
     });
   };
@@ -270,24 +305,35 @@ export function BelgeYonetimi({
   return (
     <div className="flex flex-col gap-8">
       <BelgeGrubu
+        aday={aday}
         baslik="İlk Belge Seti"
         onaylandi={!mulakatOtonom && !sonlandi && ilkOnaylanmis}
         belgeler={aday.ilkBelgeSeti}
         onYukle={ilkYukle}
         ozelSatir={(b) =>
           b.ad === MULAKAT_FORMU_ADI ? (
-            <button
-              onClick={() => setMulakatFormuAcik(true)}
-              className="flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
-            >
-              <FileSignature className="h-3.5 w-3.5" />
-              {b.durum === "yuklendi" ? "Formu Görüntüle" : "Formu Doldur"}
-            </button>
+            <>
+              {" "}
+              <button
+                onClick={() => setMulakatFormuAcik(true)}
+                className="flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+              >
+                {" "}
+                <FileSignature className="h-3.5 w-3.5" />{" "}
+                {b.durum === "yuklendi" || aday.surecDurumu === "egitmen"
+                  ? "Formu Görüntüle"
+                  : "Formu Doldur"}{" "}
+              </button>{" "}
+              {b.durum === "yuklendi" && (
+                <BelgeIndirButonu belge={b} aday={aday} ekSatirlar={mulakatFormuSatirlari(aday)} />
+              )}{" "}
+            </>
           ) : null
         }
       />
 
       <BelgeGrubu
+        aday={aday}
         baslik="İkinci Belge Seti"
         onaylandi={!sonlandi && ikinciOnaylanmis}
         reddedildi={!!aday.ikinciBelgeSetiRedSebebi}
@@ -304,7 +350,10 @@ export function BelgeYonetimi({
                 type="checkbox"
                 checked={!!aday.dijitalOryantasyonTamamlandi}
                 onChange={(e) =>
-                  ikinciSetiGuncelle({ ...aday, dijitalOryantasyonTamamlandi: e.target.checked })
+                  ikinciSetiGuncelle({
+                    ...aday,
+                    dijitalOryantasyonTamamlandi: e.target.checked,
+                  })
                 }
                 className="h-3.5 w-3.5 rounded border-zinc-300"
               />
@@ -367,6 +416,7 @@ export function BelgeYonetimi({
         <MulakatFormuModal
           aday={aday}
           dahaOnceDolduruldu={mulakatFormuBelge?.durum === "yuklendi"}
+          saltOkunur={aday.surecDurumu === "egitmen"}
           onClose={() => setMulakatFormuAcik(false)}
           onKaydet={mulakatFormuKaydet}
         />

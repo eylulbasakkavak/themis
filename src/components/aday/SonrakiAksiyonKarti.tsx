@@ -17,7 +17,7 @@ import { enAcilSertifika, vizeDurumu, vizeKalanGun } from "@/lib/sertifika";
 import type { AdayEgitmen, IstihdamTipi } from "@/lib/types";
 
 /** Kartın sekme değiştirerek yönlendirdiği yerler (AdayDetayIcerik sekme kimlikleri). */
-export type ProfilSekmesi = "genel" | "belgeler" | "kademe-federasyon" | "akademi-sinav";
+export type ProfilSekmesi = "genel" | "belgeler" | "kademe-federasyon" | "akademi-mulakat" | "sinav-sonuclari";
 
 type Buton =
   | { tur: "islem"; label: string; onClick: () => void; tehlikeli?: boolean; pasif?: boolean }
@@ -178,7 +178,7 @@ export function SonrakiAksiyonKarti({
           aciklama: ik
             ? "Akademi dönemini, vergi levhasını ve kıyafet bedenlerini girip kaydedin; aday Akademi Eğitmeni olur."
             : "Akademi dönemini, vergi levhasını ve kıyafet bedenlerini girip İK onayına gönderin.",
-          buton: { tur: "islem", label: "Davet formunu aç", onClick: sekme("akademi-sinav") },
+          buton: { tur: "islem", label: "Davet formunu aç", onClick: sekme("akademi-mulakat") },
         };
       case "akademi_daveti_onayi_bekliyor":
         return ik
@@ -213,7 +213,7 @@ export function SonrakiAksiyonKarti({
                 uyari: true,
               }
             : undefined,
-          buton: { tur: "islem", label: "Yeniden davet et", onClick: sekme("akademi-sinav") },
+          buton: { tur: "islem", label: "Yeniden davet et", onClick: sekme("akademi-mulakat") },
           ikincil: sonlandirIkincil,
         };
       }

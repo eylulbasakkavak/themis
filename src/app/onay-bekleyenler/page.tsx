@@ -9,6 +9,7 @@ import {
   Award,
   BookOpen,
   Check,
+  Download,
   Eye,
   FileText,
   GraduationCap,
@@ -17,9 +18,11 @@ import {
   X,
 } from "lucide-react";
 import { Badge } from "@/components/Badge";
+import { BelgeIndirButonu } from "@/components/BelgeIndirButonu";
 import { useAdaylar } from "@/lib/AdaylarContext";
 import { akademiDavetiOnayKaydi, kontenjanDoluMu } from "@/lib/akademi";
 import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
+import { belgeIndir } from "@/lib/belgeIndir";
 import { bekleyenBelgeSeti } from "@/lib/belgeKurallari";
 import { useBildirimler } from "@/lib/BildirimlerContext";
 import { ikYetkisiVarMi, KULLANICILAR, useCurrentUser } from "@/lib/CurrentUserContext";
@@ -185,7 +188,7 @@ function OnayBekleyenlerIcerik() {
               ? `${d.ad} · başlangıç ${d.baslangicTarihi} · konaklama: ${a.bmOnayliKonaklama ?? "—"}`
               : undefined;
           })(),
-          hedefTab: "akademi-sinav",
+          hedefTab: "akademi-mulakat",
           durum: "bekleyen",
           gonderen,
         });
@@ -196,7 +199,7 @@ function OnayBekleyenlerIcerik() {
           kaynak: "akademi-daveti",
           belge: { ad: "Akademi Daveti Onayı", durum: "yuklendi", tarih: "Bugün" },
           tip: "Akademi Daveti Onayı",
-          hedefTab: "akademi-sinav",
+          hedefTab: "akademi-mulakat",
           durum: "reddedilen",
           gonderen,
         });
@@ -269,7 +272,7 @@ function OnayBekleyenlerIcerik() {
           kayitId: kimlik,
           belge: { ad: "İhtar Kaydı", durum: "yuklendi", tarih: k.tarih },
           tip: "İhtar Kaydı Onayı",
-          ozet: `${k.tarih} · ${k.sebep}`,
+          ozet: `${k.tarih}${k.kategori ? ` · Kategori ${k.kategori}` : ""} · ${k.sebep}`,
           hedefTab: "ihtar",
           durum: durumu(k as { onaylandi: boolean; redSebebi?: string }),
           gonderen: k.kaydeden,
@@ -395,7 +398,7 @@ function OnayBekleyenlerIcerik() {
         planlayan,
         tarih: "Bugün",
         adayId: t.aday.id,
-        link: `/adaylar/${t.aday.id}?tab=akademi-sinav`,
+        link: `/adaylar/${t.aday.id}?tab=akademi-mulakat`,
       });
     }
     talebiKapat();
@@ -478,7 +481,7 @@ function OnayBekleyenlerIcerik() {
         planlayan,
         tarih: "Bugün",
         adayId: t.aday.id,
-        link: `/adaylar/${t.aday.id}?tab=akademi-sinav`,
+        link: `/adaylar/${t.aday.id}?tab=akademi-mulakat`,
       });
     }
     talebiKapat();
@@ -664,13 +667,16 @@ function OnayBekleyenlerIcerik() {
                           <FileText className="h-4 w-4 text-zinc-400" />
                           <span className="text-sm font-medium text-zinc-800">{b.ad}</span>
                         </div>
-                        <button
-                          onClick={() => setOnizleme(b)}
-                          className="rounded-lg border border-zinc-200 p-1 text-zinc-500 hover:bg-zinc-50"
-                          title="Görüntüle"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setOnizleme(b)}
+                            className="rounded-lg border border-zinc-200 p-1 text-zinc-500 hover:bg-zinc-50"
+                            title="Görüntüle"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <BelgeIndirButonu belge={b} aday={acikTalep.aday} />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -693,6 +699,12 @@ function OnayBekleyenlerIcerik() {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
+                      )}
+                      {acikTalep.aday.vergiLevhasi?.durum === "yuklendi" && (
+                        <BelgeIndirButonu
+                          belge={acikTalep.aday.vergiLevhasi}
+                          aday={acikTalep.aday}
+                        />
                       )}
                     </div>
                   </div>
@@ -736,13 +748,25 @@ function OnayBekleyenlerIcerik() {
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={() => setOnizleme(acikTalep.belge)}
-                  className="mt-1 flex items-center justify-center gap-2 rounded-lg border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
-                >
-                  <Eye className="h-4 w-4" />
-                  Belgeyi Görüntüle
-                </button>
+                <div className="mt-1 flex gap-2">
+                  <button
+                    onClick={() => setOnizleme(acikTalep.belge)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Belgeyi Görüntüle
+                  </button>
+                  {/* İhtar kaydının ekli belgesi yoktur; diğer talepler yüklenmiş bir belgeye dayanır. */}
+                  {acikTalep.kaynak !== "ihtar" && (
+                    <button
+                      onClick={() => belgeIndir(acikTalep.belge, acikTalep.aday)}
+                      className="flex items-center justify-center gap-2 rounded-lg border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                    >
+                      <Download className="h-4 w-4" />
+                      İndir
+                    </button>
+                  )}
+                </div>
               )}
 
               {acikTalep.durum === "bekleyen" && ikMi && (
@@ -828,6 +852,11 @@ function OnayBekleyenlerIcerik() {
               <FileText className="h-10 w-10" />
               <p className="text-xs">{onizleme.tarih} tarihinde yüklendi</p>
             </div>
+            {acikTalep && acikTalep.kaynak !== "ihtar" && (
+              <div className="mt-4 flex justify-end">
+                <BelgeIndirButonu belge={onizleme} aday={acikTalep.aday} etiket="İndir" />
+              </div>
+            )}
           </div>
         </div>
       )}
