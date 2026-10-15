@@ -6,7 +6,8 @@ export const MULAKAT_KRITERLERI = [
   {
     anahtar: "kisiselOzellikler",
     ad: "Kişisel Özellikler",
-    kapsam: "Vücut dili ve güler yüz, ses tonu ve anlaşılır olması, göz teması ve tavır",
+    kapsam:
+      "Vücut dili ve güler yüz, ses tonu ve anlaşılır olması, göz teması ve tavır",
   },
   {
     anahtar: "fizikselGorunum",
@@ -23,7 +24,11 @@ export const MULAKAT_KRITERLERI = [
     ad: "Eğitim / Sertifika",
     kapsam: "Spor bilimleri fakültesi, üniversite, sertifikalar",
   },
-  { anahtar: "egzersizBilgisi", ad: "Egzersiz Bilgisi", kapsam: "Teorik bilgi" },
+  {
+    anahtar: "egzersizBilgisi",
+    ad: "Egzersiz Bilgisi",
+    kapsam: "Teorik bilgi",
+  },
   {
     anahtar: "tecrubeyiAktarabilme",
     ad: "Tecrübeyi Aktarabilme",
@@ -31,7 +36,8 @@ export const MULAKAT_KRITERLERI = [
   },
 ] as const;
 
-export type MulakatKriterAnahtari = (typeof MULAKAT_KRITERLERI)[number]["anahtar"];
+export type MulakatKriterAnahtari =
+  (typeof MULAKAT_KRITERLERI)[number]["anahtar"];
 
 /** 6 kriterden en az bu kadarını karşılayan aday Olumlu sonuçlanır (PRD 5.4). */
 export const OLUMLU_ESIGI = 4;
@@ -84,7 +90,10 @@ export function akademiMulakatiniYapan(a: AdayEgitmen): string {
 }
 
 /** Kaydetmeyi engelleyen eksikler; boş liste değerlendirmenin kaydedilebilir olduğunu gösterir. */
-export function eksikler(d: MulakatDegerlendirmesi, aday: AdayEgitmen): string[] {
+export function eksikler(
+  d: MulakatDegerlendirmesi,
+  aday: AdayEgitmen,
+): string[] {
   const sonuc = sonucHesapla(d);
   if (!sonuc) return ["Tüm kriterler işaretlenmeli"];
   const liste: string[] = [];
@@ -95,7 +104,8 @@ export function eksikler(d: MulakatDegerlendirmesi, aday: AdayEgitmen): string[]
   ) {
     liste.push("Kısa akademi uygunluğu seçilmeli");
   }
-  if (sonuc === "Olumsuz" && !d.aciklama?.trim()) liste.push("Olumsuz sonuçta açıklama zorunlu");
+  if (sonuc === "Olumsuz" && !d.aciklama?.trim())
+    liste.push("Olumsuz sonuçta açıklama zorunlu");
   return liste;
 }
 
@@ -112,7 +122,7 @@ function bugununTarihi() {
 export function degerlendirmeyiUygula(
   aday: AdayEgitmen,
   d: MulakatDegerlendirmesi,
-  giren: string
+  giren: string,
 ): AdayEgitmen {
   const sonuc = sonucHesapla(d);
   if (!sonuc) return aday;
@@ -146,7 +156,8 @@ export function degerlendirmeyiUygula(
   if (standartaYonlendir) {
     aksiyonlar.push({
       tarih,
-      aksiyon: "Kısa akademiye uygun bulunmadı; standart akademiye yönlendirildi",
+      aksiyon:
+        "Kısa akademiye uygun bulunmadı; standart akademiye yönlendirildi",
       yapan: giren,
       detay: undefined,
     });

@@ -7,6 +7,7 @@ import { Badge } from "@/components/Badge";
 import { SozlesmeTipiSecimi } from "@/components/egitmen/SozlesmeTipiSecimi";
 import { useAdaylar } from "@/lib/AdaylarContext";
 import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
+import { akademiGenelSonucu } from "@/lib/akademiSinav";
 import { useAkademiSinavSonuclari } from "@/lib/AkademiSinavSonuclariContext";
 import { ikYetkisiVarMi, useCurrentUser } from "@/lib/CurrentUserContext";
 import { egitmenBilgileriEksikMi, egitmeneGecir } from "@/lib/egitmenGecis";
@@ -60,9 +61,7 @@ export default function TopluEgitmenligeGecisPage() {
     : hazirlar;
 
   const sinavSonucu = (id: string, donemId?: string) =>
-    sinavSonuclari.find(
-      (s) => s.egitmenId === id && (!s.akademiDonemiId || s.akademiDonemiId === donemId)
-    )?.genelSonuc;
+    akademiGenelSonucu(sinavSonuclari, id, donemId);
   const secim = (id: string): Secim => {
     const a = adaylar.find((x) => x.id === id);
     return secimler[id] ?? { tip: a?.istihdamTipi ?? "", altTip: a?.altSozlesmeTipi ?? "" };

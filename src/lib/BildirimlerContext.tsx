@@ -20,7 +20,7 @@ export function BildirimlerProvider({ children }: { children: ReactNode }) {
     vizeBildirimleriUret(adayEgitmenler, [
       { rol: "Kulüp Müdürü", ad: KULLANICILAR["Kulüp Müdürü"].ad },
       { rol: "İK", ad: KULLANICILAR["İK"].ad },
-    ]).map((b) => ({ ...b, okundu: false }))
+    ]).map((b) => ({ ...b, okundu: false })),
   );
 
   const bildirimEkle = (yeni: Omit<Bildirim, "id" | "okundu">) => {
@@ -31,11 +31,15 @@ export function BildirimlerProvider({ children }: { children: ReactNode }) {
   };
 
   const bildirimOkunduIsaretle = (id: string) => {
-    setBildirimler((prev) => prev.map((b) => (b.id === id ? { ...b, okundu: true } : b)));
+    setBildirimler((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, okundu: true } : b)),
+    );
   };
 
   return (
-    <BildirimlerContext.Provider value={{ bildirimler, bildirimEkle, bildirimOkunduIsaretle }}>
+    <BildirimlerContext.Provider
+      value={{ bildirimler, bildirimEkle, bildirimOkunduIsaretle }}
+    >
       {children}
     </BildirimlerContext.Provider>
   );
@@ -43,6 +47,7 @@ export function BildirimlerProvider({ children }: { children: ReactNode }) {
 
 export function useBildirimler() {
   const ctx = useContext(BildirimlerContext);
-  if (!ctx) throw new Error("useBildirimler, BildirimlerProvider içinde kullanılmalı");
+  if (!ctx)
+    throw new Error("useBildirimler, BildirimlerProvider içinde kullanılmalı");
   return ctx;
 }

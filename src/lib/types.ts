@@ -36,7 +36,12 @@ export type AksiyonKaydi = {
 
 /** Eğitmen sözleşme tipi (PRD 10.2). */
 export type IstihdamTipi =
-  "Tam Zamanlı" | "Yarı Zamanlı" | "Kiracı" | "Alt Kiracı" | "Grup Ders Eğitmeni" | "Instructor";
+  | "Tam Zamanlı"
+  | "Yarı Zamanlı"
+  | "Kiracı"
+  | "Alt Kiracı"
+  | "Grup Ders Eğitmeni"
+  | "Instructor";
 
 /** PGM/Flyby'dan gelen, Themis'te değiştirilemeyen salt okunur sözleşme/kulüp geçmişi kaydı. */
 export type SozlesmeKaydi = {
@@ -155,10 +160,14 @@ export type SertifikaVizesi = {
 
 export type TemelEgitimSonucuTipi = "Geçti" | "Kaldı" | "Katılmadı";
 
-/** Anadolu Üniversitesi temel eğitim sınavı sonucu (PRD 12.3); İK onayına düşer. */
+/**
+ * Anadolu Üniversitesi temel eğitim sınavı sonucu (PRD 12.3); İK onayına düşer. Her branşın
+ * temel eğitimi ayrıdır: sınav yalnızca girildiği branşta sayılır.
+ */
 export type TemelEgitimSonucu = {
   id: string;
-  brans: string;
+  // Sınavın girildiği branş (yoksa Fitness); sınav yalnızca bu branşın temel eğitiminde sayılır.
+  brans?: string;
   hedefKademe: number;
   // "DD.MM.YYYY"
   sinavTarihi: string;
@@ -166,16 +175,82 @@ export type TemelEgitimSonucu = {
   // Ders adı → Geçti / Kaldı (sonuç "Katılmadı" ise boş).
   dersler: Record<string, "Geçti" | "Kaldı">;
   mazeret?: string;
+  // Sınav sonuç belgesi (görsel / PDF). Eğitmen MAC+ içindeki Themis arayüzünden yükler; ders
+  // sonuçları bu belgeden okunur. Katılmadı ise belge yoktur.
+  belge?: Belge;
+  // Kaydın geldiği yer: eğitmenin MAC+ yüklemesi ya da Themis'ten (İK / KM) giriş.
+  kaynak?: "MAC+" | "Themis";
   onaylandi: boolean;
   redSebebi?: string;
   yukleyen: string;
   tarih: string;
 };
 
+/**
+ * Kademe geçişi için gereken federasyon gelişim semineri (bkz. BRANS_TANIMLARI.gecisler).
+ * KM/KMY girer, İK onaylar; yalnızca aktif kademe belgesinden sonraki seminerler sayılır.
+ */
+export type GelisimSemineri = {
+  id: string;
+  brans: string;
+  ad: string;
+  // "DD.MM.YYYY"
+  seminerTarihi: string;
+  belge: Belge;
+  onaylandi: boolean;
+  redSebebi?: string;
+  yukleyen: string;
+  tarih: string;
+};
+
+/**
+ * Öğrenim bilgisinin spor eğitimi ayrıntısı (bölüm, uzmanlık branşı, ders alınan branşlar…).
+ * Ayrıca girilmez; öğrenim bilgisiyle gelir. Temel eğitim muafiyetleri ve mezuniyetle doğrudan
+ * başvurulabilecek kademe buradan otomatik hesaplanır (bkz. temelEgitim.ts). Mezuniyet yalnızca
+ * temel eğitimden muaf tutar; federasyonun uygulamalı eğitimi ve sınavı her durumda zorunludur.
+ */
+export type SporEgitimiTuru =
+  "antrenorluk" | "spor_bilimleri" | "spor_lisesi" | "yok";
+
+export type SporEgitimi = {
+  tur: SporEgitimiTuru;
+  // Antrenörlük dışı spor bilimleri bölümü: beden eğitimi öğretmenliği, spor yöneticiliği…
+  bolum?: string;
+  // "DD.MM.YYYY" — 4 yıllık muafiyetler bu tarihten başlar.
+  mezuniyetTarihi?: string;
+  // Antrenörlük Eğitimi bölümü: uzmanlık branşı.
+  uzmanlikBransi?: string;
+  // Antrenörlük: uzmanlık dışında ders alınan tek branş. Diğer bölümler: ilgili branşlar.
+  dersAlinanBranslar?: { brans: string; donem: number }[];
+  // Spor lisesi: okulda eğitim görülen branş.
+  liseBransi?: string;
+  // Spor bilimleri öğretim elemanı (en az 3 yıl uygulamalı ders) — öğrenim türünden bağımsız.
+  ogretimElemani?: { brans: string; yil: number };
+};
+
+/** Bir GX dersi için akademi kararı: sistem önerisinden farklı olabilir; neden zorunludur. */
+export type GxKarari = {
+  ders: string;
+  karar: "verebilir" | "veremez";
+  neden: string;
+  yapan: string;
+  tarih: string;
+};
+
 export type AkademiTipi =
-  "Standart Akademi Mülakatı (4 Hafta)" | "Kısa Dönem Akademi Mülakatı (1 Hafta)";
+  | "Standart Akademi Mülakatı (4 Hafta)"
+  | "Kısa Dönem Akademi Mülakatı (1 Hafta)";
 
 export type YoklamaDurumu = "Geldi" | "Gelmedi";
+
+/** Akademinin bir eğitim gününün yoklaması (ilk gün hariç). */
+export type GunlukYoklama = {
+  // Eğitim günü, "DD.MM.YYYY".
+  tarih: string;
+  yoklama: Record<string, YoklamaDurumu>;
+  alan: string;
+  alinmaTarihi: string;
+};
 
 /** Akademi menüsünde Akademi Yöneticisi tarafından oluşturulan akademi (PRD 7). */
 export type AkademiDonemi = {
@@ -189,10 +264,13 @@ export type AkademiDonemi = {
   // Akademi daveti onaylanan adaylar bu listeye yazılır (PRD 6). Gelmeyen aday listeden
   // çıkmaz; kontenjan geri açılmaz (PRD 8.1).
   kayitlilar: string[];
-  // Akademinin ilk günü alınan yoklama (PRD 8); alınana kadar tanımsızdır.
+  // Akademinin ilk günü alınan yoklama (PRD 8); alınana kadar tanımsızdır. İlk gün gelmeyenin
+  // Akademi Eğitmeni sözleşmesi kapatılır.
   yoklama?: Record<string, YoklamaDurumu>;
   yoklamaAlan?: string;
   yoklamaTarihi?: string;
+  // İlk günden sonraki her eğitim gününün yoklaması (yalnızca ilk gün gelenler için).
+  gunlukYoklamalar?: GunlukYoklama[];
   // Henüz aday kaydedilmemiş akademi iptal edilebilir (PRD 7.1).
   iptal?: boolean;
 };
@@ -208,18 +286,37 @@ export type SinavBasligi = { grup: string; ad: string };
  * Bir eğitmenin akademi sınav sonuçları (PRD 9). Themis puan hesaplamaz; Excel'deki tüm
  * başlıklar ve puanlar olduğu gibi saklanır. Puanlar 100 üzerindendir.
  */
+/** Akademi sınav puanına yapılan elle düzeltme (İK / Sistem Yöneticisi); iz kaydı. */
+export type SinavDuzeltmesi = {
+  // Düzeltilen dersin basliklar içindeki sırası.
+  baslikIndeksi: number;
+  eski: number | null;
+  yeni: number | null;
+  aciklama: string;
+  yapan: string;
+  tarih: string;
+};
+
+/**
+ * Bir akademideki tek bir sınavın sonucu (PRD 9). Bir akademide 3 sınav hakkı vardır: 1. sınavda
+ * kalan 2. sınava, 2. sınavda kalan 3. sınava yalnızca kaldığı derslerden girer. Genel sonuç
+ * denemelerden hesaplanır (bkz. akademiSinav.ts).
+ */
 export type AkademiSinavSonucu = {
   id: string;
   egitmenId: string;
   akademiDonemiId?: string;
+  sinavNo: 1 | 2 | 3;
   basliklar: SinavBasligi[];
-  // basliklar ile aynı sırada; boş hücre null.
+  // basliklar ile aynı sırada; boş hücre (o derse girilmedi) null.
   puanlar: (number | null)[];
+  // Bu sınav sonrası hesaplanan genel sonuç (Fitness Teorik + Uygulama derslerinin hepsi 70+).
   genelSonuc: "Geçti" | "Kaldı";
   // Genel sonuç kolonunun Excel'deki başlığı (örn. "PERSONAL TRAINING").
   genelSonucBasligi: string;
   yuklemeTarihi: string;
   yukleyen: string;
+  duzeltmeler?: SinavDuzeltmesi[];
 };
 
 export type AdayEgitmen = {
@@ -238,7 +335,8 @@ export type AdayEgitmen = {
   surecDurumu: SurecDurumu;
   // "İleride Değerlendirilebilir" PRD'den önceki akıştan kalan eski bir değerdir; yeni
   // değerlendirmeler yalnızca Olumlu / Olumsuz / Katılmadı üretir (bkz. mulakatDegerlendirme.ts).
-  gorusmeSonucu?: "Olumlu" | "Olumsuz" | "Katılmadı" | "İleride Değerlendirilebilir";
+  gorusmeSonucu?:
+    "Olumlu" | "Olumsuz" | "Katılmadı" | "İleride Değerlendirilebilir";
   // Akademi mülakatının 6 kriterli değerlendirmesi ve ek alanları (PRD 5.3–5.5).
   mulakatDegerlendirmesi?: MulakatDegerlendirmesi;
   // Mülakat sonucunun doldurulduğu gün (PRD): database'e kaydedilir, eğitmen
@@ -256,6 +354,9 @@ export type AdayEgitmen = {
   // Mülakat Formu — PRD 4.3'teki yapılandırılmış sorular.
   cinsiyet?: "Kadın" | "Erkek";
   federasyonKademeDurumu?: string;
+  // Federasyon kademe belgesinin alındığı tarih ("YYYY-MM-DD"); "… Kademe belgem var"
+  // seçildiğinde zorunlu. Raporlamada kullanılır.
+  federasyonBelgeTarihi?: string;
   // Sadece "Denklik Bekliyor (Öğrenci)" seçildiğinde doldurulur.
   denklikMezuniyetTarihi?: string;
   antrenorlukGecmisiVarMi?: "Evet" | "Hayır";
@@ -273,6 +374,9 @@ export type AdayEgitmen = {
   akademiMulakatTipi?: AkademiTipi;
   ilkBelgeSeti: Belge[];
   ikinciBelgeSeti: Belge[];
+  // Canlı eğitmen olduktan sonra İK'nın yüklediği sözleşmeler (bkz. CANLI_EGITMEN_SOZLESMELERI);
+  // KM/KMY yalnızca görüntüler ve indirir.
+  canliEgitmenSozlesmeleri?: Belge[];
   ikinciBelgeSetiOnaylandi?: boolean;
   ikinciBelgeSetiRedSebebi?: string;
   // İkinci belge setini yükleyen KM/KMY tarafından işaretlenir (PRD 4.4).
@@ -296,7 +400,11 @@ export type AdayEgitmen = {
   akademiDonemiId?: string;
   // Yoklamada "Gelmedi" işaretlendiği akademiler (PRD 8.2); profilde
   // "Akademiye katılmadı – [akademi tarihi]" olarak gösterilir.
-  katilmadigiAkademiler?: { akademiId: string; akademiAdi: string; tarih: string }[];
+  katilmadigiAkademiler?: {
+    akademiId: string;
+    akademiAdi: string;
+    tarih: string;
+  }[];
   // Eğitmen Detay Sayfası'nda Aday Eğitmenin Kişisel Bilgileri (PRD) alanları.
   macCampusId?: string;
   tcKimlikNo?: string;
@@ -321,14 +429,28 @@ export type AdayEgitmen = {
   temelEgitimBelgeleri?: TemelEgitimBelgesi[];
   // PRD 12.3 temel eğitim sınav sonuçları.
   temelEgitimSonuclari?: TemelEgitimSonucu[];
+  // Kademe geçişleri için girilen gelişim seminerleri.
+  gelisimSeminerleri?: GelisimSemineri[];
+  // Öğrenim bilgisinin spor eğitimi ayrıntısı; yoksa egitimBilgisi'nden türetilir.
+  sporEgitimi?: SporEgitimi;
   ihtarKayitlari?: IhtarKaydi[];
   // Eğitmen +1 hakkını kullanan üyeler (PRD 14); Flyby'dan gelir, raporda kolon olarak görünür.
   artiBirKullanimlari?: { uyeId: string; uyeAdi: string }[];
   istihdamTipi?: IstihdamTipi;
   // Alt sözleşme tipi, örn. "Kiracı Pilates Coach" (bkz. ALT_SOZLESME_TIPLERI).
   altSozlesmeTipi?: string;
+  // GX ders yetkinliği kararları (İK / Sistem Yöneticisi); her dersin son kaydı geçerlidir.
+  // Kayıt yoksa sistem önerisi (akademi sınavında 70+) geçerlidir.
+  gxKararlari?: GxKarari[];
+  // Kulüp atamasında seçilen eğitmen karne statüsü; Grup Ders Eğitmeni'nde yoktur.
+  karneStatusu?: EgitmenLig;
   // Akademiyi tamamlayamayan / katılmayan adayın süreci sonlandırıldığında (PRD 10.1, 8.2).
-  surecSonlandirma?: { neden: string; aciklama?: string; tarih: string; yapan: string };
+  surecSonlandirma?: {
+    neden: string;
+    aciklama?: string;
+    tarih: string;
+    yapan: string;
+  };
   // Flyby'daki tanımlı sözleşmeden gelir; Themis'te düzenlenemez, sadece görüntülenir.
   sozlesmeTipi?: SozlesmeTipi;
   // Sözleşme ve kulüp geçmişi; PGM/Flyby'dan gerçek zamanlı beslenir, Themis'te değiştirilemez.

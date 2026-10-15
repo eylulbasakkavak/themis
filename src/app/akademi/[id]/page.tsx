@@ -3,25 +3,35 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { ArrowLeft, CalendarCheck, Download, Pencil, Search, XCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarCheck,
+  Check,
+  Download,
+  Pencil,
+  Search,
+  XCircle,
+} from "lucide-react";
 import { Badge } from "@/components/Badge";
 import { AkademiDuzenleModal } from "@/components/akademi/AkademiDuzenleModal";
 import { useAdaylar } from "@/lib/AdaylarContext";
 import {
   akademiDurumu,
   bugun,
+  devamDurumu,
   duzenlenebilirMi,
+  egitimGunleri,
+  gecmisEgitimGunleri,
+  gununYoklamasi,
   gelmeyenSayisi,
   katilanSayisi,
   kayitliSayisi,
   kisaAkademiMi,
   tarihYaz,
-  yoklamaAlinabilirMi,
   yoklamaAlindiMi,
 } from "@/lib/akademi";
 import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
-import { useBildirimler } from "@/lib/BildirimlerContext";
-import { ikYetkisiVarMi, KULLANICILAR, useCurrentUser } from "@/lib/CurrentUserContext";
+import { ikYetkisiVarMi, useCurrentUser } from "@/lib/CurrentUserContext";
 import type { AdayEgitmen, YoklamaDurumu } from "@/lib/types";
 
 function GeriDon() {
@@ -36,18 +46,30 @@ function GeriDon() {
   );
 }
 
-function Sayi({ label, deger, renk }: { label: string; deger: ReactNode; renk?: string }) {
+function Sayi({
+  label,
+  deger,
+  renk,
+}: {
+  label: string;
+  deger: ReactNode;
+  renk?: string;
+}) {
   return (
     <div className="rounded-xl border border-zinc-100 px-4 py-3">
       <div className="text-xs text-zinc-400">{label}</div>
-      <div className={`mt-1 text-2xl font-bold ${renk ?? "text-zinc-900"}`}>{deger}</div>
+      <div className={`mt-1 text-2xl font-bold ${renk ?? "text-zinc-900"}`}>
+        {deger}
+      </div>
     </div>
   );
 }
 
 function csvIndir(dosyaAdi: string, basliklar: string[], satirlar: string[][]) {
   const csv = [basliklar, ...satirlar]
-    .map((satir) => satir.map((h) => `"${String(h).replace(/"/g, '""')}"`).join(","))
+    .map((satir) =>
+      satir.map((h) => `"${String(h).replace(/"/g, '""')}"`).join(","),
+    )
     .join("\n");
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -61,10 +83,10 @@ function csvIndir(dosyaAdi: string, basliklar: string[], satirlar: string[][]) {
 /** Akademi detayı: kayıtlı aday listesi, filtre/Excel ve ilk gün yoklaması (PRD 7.3, 8). */
 export default function AkademiDetayPage() {
   const { id } = useParams<{ id: string }>();
-  const { donemler, donemIptal, yoklamaKaydet } = useAkademiDonemleri();
+  const { donemler, donemIptal, yoklamaKaydet, gunlukYoklamaKaydet } =
+    useAkademiDonemleri();
   const { adaylar, setAdaylar } = useAdaylar();
   const { currentUser } = useCurrentUser();
-  const { bildirimEkle } = useBildirimler();
   const akademi = donemler.find((d) => d.id === id);
 
   const [aramaMetni, setAramaMetni] = useState("");
@@ -72,8 +94,14 @@ export default function AkademiDetayPage() {
   const [kulup, setKulup] = useState("");
   const [duzenleAcik, setDuzenleAcik] = useState(false);
   const [iptalOnay, setIptalOnay] = useState(false);
-  // Yoklama modunda işaretlenen ama henüz kaydedilmemiş değerler.
-  const [yoklamaTaslak, setYoklamaTaslak] = useState<Record<string, YoklamaDurumu> | null>(null);
+  // Yoklama modunda işaretlenen ama henüz kaydedilmemiş değerler ve yoklaması alınan gün.
+  const [yoklamaTaslak, setYoklamaTaslak] = useState<Record<
+    string,
+    YoklamaDurumu
+  > | null>(null);
+  const [yoklamaGunu, setYoklamaGunu] = useState<string | null>(null);
+  // Tabloda gösterilen eğitim günü (varsayılan: bugüne en yakın geçmiş gün).
+  const [seciliGunHam, setSeciliGun] = useState<string | null>(null);
 
   if (!akademi) {
     return (
@@ -93,7 +121,7 @@ export default function AkademiDetayPage() {
     .map((aid) => adaylar.find((a) => a.id === aid))
     .filter((a): a is AdayEgitmen => !!a);
   const kulupler = [...new Set(kayitlilar.map((a) => a.kulup))].sort((a, b) =>
-    a.localeCompare(b, "tr")
+    a.localeCompare(b, "tr"),
   );
   const gorunenler = kayitlilar.filter(
     (a) =>
@@ -101,11 +129,32 @@ export default function AkademiDetayPage() {
         .toLocaleLowerCase("tr")
         .includes(aramaMetni.trim().toLocaleLowerCase("tr")) &&
       (!cinsiyet || a.cinsiyet === cinsiyet) &&
-      (!kulup || a.kulup === kulup)
+      (!kulup || a.kulup === kulup),
   );
+  const gunler = egitimGunleri(akademi);
+  const ilkGun = gunler[0];
+  const gecmisGunler = gecmisEgitimGunleri(akademi);
+  const seciliGun = seciliGunHam ?? gecmisGunler.at(-1) ?? ilkGun;
+  const gunNo = (g: string) => gunler.indexOf(g) + 1;
   const yoklamaModu = yoklamaTaslak !== null;
-  const yoklamaDegeri = (aid: string) => (yoklamaTaslak ?? akademi.yoklama ?? {})[aid];
-  const yoklamaTamam = yoklamaModu && kayitlilar.every((a) => yoklamaTaslak[a.id]);
+  // Gelmemek yalnızca devamsızlık olarak kaydedilir; her gün tüm kayıtlılar yoklamaya girer.
+  const yoklamaGirenler = kayitlilar;
+  const yoklamaDegeri = (aid: string) =>
+    (yoklamaTaslak ?? gununYoklamasi(akademi, seciliGun) ?? {})[aid];
+  const yoklamaTamam =
+    yoklamaModu && yoklamaGirenler.every((a) => yoklamaTaslak[a.id]);
+  /** Günün yoklama durumu: alındı / bekliyor (günü geldi, alınmadı) / gelecek. */
+  const gunDurumu = (g: string) =>
+    gununYoklamasi(akademi, g)
+      ? "alindi"
+      : gecmisGunler.includes(g)
+        ? "bekliyor"
+        : "gelecek";
+  const yoklamaBaslat = (g: string) => {
+    setSeciliGun(g);
+    setYoklamaGunu(g);
+    setYoklamaTaslak({ ...(gununYoklamasi(akademi, g) ?? {}) });
+  };
 
   const excelIndir = () =>
     csvIndir(
@@ -119,7 +168,8 @@ export default function AkademiDetayPage() {
         "Ayakkabı No",
         "Üst Beden",
         "Alt Beden",
-        "Yoklama",
+        `Yoklama (${gunNo(seciliGun)}. gün)`,
+        "Devam",
       ],
       gorunenler.map((a) => [
         `${a.ad} ${a.soyad}`,
@@ -130,66 +180,46 @@ export default function AkademiDetayPage() {
         a.ayakkabiNo ?? "",
         a.ustBeden ?? "",
         a.altBeden ?? "",
-        akademi.yoklama?.[a.id] ?? "",
-      ])
+        gununYoklamasi(akademi, seciliGun)?.[a.id] ?? "",
+        `${devamDurumu(akademi, a.id).geldi}/${devamDurumu(akademi, a.id).alinan}`,
+      ]),
     );
 
   const yoklamaKaydetVeUygula = () => {
     if (!yoklamaTaslak || !yoklamaTamam) return;
     const yapan = `${currentUser.ad} (${currentUser.rol})`;
     const tarih = tarihYaz(bugun());
-    yoklamaKaydet(akademi.id, yoklamaTaslak, yapan, tarih);
-
-    setAdaylar((prev) =>
-      prev.map((a) => {
-        const y = yoklamaTaslak[a.id];
-        if (!y) return a;
-        if (y === "Geldi") {
-          return {
-            ...a,
-            aksiyonGecmisi: [
-              ...a.aksiyonGecmisi,
-              { tarih, aksiyon: `Akademiye katıldı (${akademi.ad} yoklaması)`, yapan },
-            ],
-          };
-        }
-        // PRD 8.2: Akademi Eğitmeni sözleşmesi kapatılır, aday önceki üyelik tipine döner.
-        return {
-          ...a,
-          surecDurumu: "akademiye_katilmadi",
-          katilmadigiAkademiler: [
-            ...(a.katilmadigiAkademiler ?? []),
-            { akademiId: akademi.id, akademiAdi: akademi.ad, tarih: akademi.baslangicTarihi },
-          ],
-          aksiyonGecmisi: [
-            ...a.aksiyonGecmisi,
-            {
-              tarih,
-              aksiyon: `Akademiye katılmadı (${akademi.ad}); Akademi Eğitmeni sözleşmesi kapatıldı, önceki üyelik tipine dönüldü`,
-              yapan,
-            },
-          ],
-        };
-      })
-    );
-
-    for (const a of kayitlilar.filter((k) => yoklamaTaslak[k.id] === "Gelmedi")) {
-      const mesaj = `${a.ad} ${a.soyad}, ${akademi.baslangicTarihi} tarihli akademiye katılmadı.`;
-      // Adayı ekleyen KM/KMY'ye ve İK'ya bilgi bildirimi gider (PRD 8.2).
-      for (const aliciRol of new Set([a.mulakatiYapanRol, "İK" as const])) {
-        bildirimEkle({
-          aliciRol,
-          aliciAd: KULLANICILAR[aliciRol].ad,
-          baslik: "Akademiye katılmadı",
-          mesaj,
-          planlayan: yapan,
-          tarih,
-          adayId: a.id,
-          link: `/adaylar/${a.id}`,
-        });
-      }
+    // Her gün (1. gün dahil) yalnızca devam kaydıdır; sözleşme kapatılmaz.
+    if (yoklamaGunu === ilkGun) {
+      yoklamaKaydet(akademi.id, yoklamaTaslak, yapan, tarih);
+    } else if (yoklamaGunu) {
+      gunlukYoklamaKaydet(akademi.id, {
+        tarih: yoklamaGunu,
+        yoklama: yoklamaTaslak,
+        alan: yapan,
+        alinmaTarihi: tarih,
+      });
     }
+    const gun = yoklamaGunu ?? ilkGun;
+    setAdaylar((prev) =>
+      prev.map((a) =>
+        yoklamaTaslak[a.id] === "Gelmedi"
+          ? {
+              ...a,
+              aksiyonGecmisi: [
+                ...a.aksiyonGecmisi,
+                {
+                  tarih,
+                  aksiyon: `Akademi ${gunNo(gun)}. gün (${gun}) yoklamasında gelmedi (${akademi.ad})`,
+                  yapan,
+                },
+              ],
+            }
+          : a,
+      ),
+    );
     setYoklamaTaslak(null);
+    setYoklamaGunu(null);
   };
 
   return (
@@ -204,8 +234,10 @@ export default function AkademiDetayPage() {
               <Badge label={durum.label} tone={durum.tone} />
             </div>
             <p className="mt-1 text-sm text-zinc-500">
-              {kisaAkademiMi(akademi.tip) ? "Kısa Dönem (1 Hafta)" : "Standart (4 Hafta)"} ·{" "}
-              {akademi.baslangicTarihi} – {akademi.bitisTarihi}
+              {kisaAkademiMi(akademi.tip)
+                ? "Kısa Dönem (1 Hafta)"
+                : "Standart (4 Hafta)"}{" "}
+              · {akademi.baslangicTarihi} – {akademi.bitisTarihi}
             </p>
             {akademi.yoklamaAlan && (
               <p className="mt-0.5 text-xs text-zinc-400">
@@ -213,16 +245,22 @@ export default function AkademiDetayPage() {
               </p>
             )}
           </div>
-          {yetkili && yoklamaAlinabilirMi(akademi) && !yoklamaModu && (
-            <button
-              onClick={() => setYoklamaTaslak({})}
-              title="Akademinin ilk günü yoklama alınarak akademi başlatılır"
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-200"
-            >
-              <CalendarCheck className="h-4 w-4" />
-              Akademiyi Başlat
-            </button>
-          )}
+          {/* Akademi, başlangıç günü 1. gün yoklaması alınarak başlatılır; sonra günlük yoklama açılır. */}
+          {yetkili &&
+            !akademi.yoklama &&
+            !yoklamaModu &&
+            !akademi.iptal &&
+            kayitlilar.length > 0 &&
+            gecmisGunler.length > 0 && (
+              <button
+                onClick={() => yoklamaBaslat(ilkGun)}
+                title="1. gün yoklaması alınarak akademi başlatılır"
+                className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-black"
+              >
+                <CalendarCheck className="h-4 w-4" />
+                Akademiyi Başlat
+              </button>
+            )}
           {yetkili && duzenlenebilirMi(akademi) && (
             <div className="flex gap-2">
               <button
@@ -245,7 +283,8 @@ export default function AkademiDetayPage() {
 
         {iptalOnay && (
           <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {akademi.ad} iptal edilecek ve davet listelerinden kalkacak. Emin misiniz?
+            {akademi.ad} iptal edilecek ve davet listelerinden kalkacak. Emin
+            misiniz?
             <div className="flex shrink-0 gap-2">
               <button
                 onClick={() => setIptalOnay(false)}
@@ -281,6 +320,78 @@ export default function AkademiDetayPage() {
           />
         </div>
       </div>
+
+      {/* Günlük yoklama: akademi başlatıldıktan sonra (1. gün dahil) her gün buradan alınır/düzenlenir. */}
+      {!akademi.iptal && akademi.yoklama && (
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900">
+                Günlük Yoklama
+              </h3>
+              <p className="text-xs text-zinc-400">
+                {gecmisGunler.filter((g) => gunDurumu(g) === "alindi").length} /{" "}
+                {gecmisGunler.length} günün yoklaması alındı · toplam{" "}
+                {gunler.length} eğitim günü
+              </p>
+            </div>
+            {yetkili && !yoklamaModu && gunDurumu(seciliGun) !== "gelecek" && (
+              <button
+                onClick={() => yoklamaBaslat(seciliGun)}
+                className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-black"
+              >
+                <CalendarCheck className="h-4 w-4" />
+                {gunDurumu(seciliGun) === "alindi"
+                  ? `${gunNo(seciliGun)}. gün yoklamasını düzenle`
+                  : `${gunNo(seciliGun)}. gün yoklamasını al`}
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {gunler.map((g) => {
+              const d = gunDurumu(g);
+              const secili = g === seciliGun;
+              return (
+                <button
+                  key={g}
+                  disabled={d === "gelecek" || yoklamaModu}
+                  onClick={() => setSeciliGun(g)}
+                  title={
+                    d === "alindi"
+                      ? "Yoklama alındı"
+                      : d === "bekliyor"
+                        ? "Yoklama bekliyor"
+                        : "Henüz gelmedi"
+                  }
+                  className={`flex min-w-16 flex-col items-center rounded-lg border px-2 py-1.5 text-xs disabled:cursor-not-allowed ${
+                    secili
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : d === "alindi"
+                        ? "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                        : d === "bekliyor"
+                          ? "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
+                          : "border-dashed border-zinc-200 text-zinc-300"
+                  }`}
+                >
+                  <span className="flex items-center gap-1 font-semibold">
+                    {d === "alindi" && (
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    )}
+                    {gunNo(g)}. Gün
+                  </span>
+                  <span
+                    className={
+                      secili ? "text-zinc-300" : "text-[11px] opacity-70"
+                    }
+                  >
+                    {g.slice(0, 5)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 px-4 py-3">
@@ -318,7 +429,9 @@ export default function AkademiDetayPage() {
             <button
               onClick={() =>
                 setYoklamaTaslak(
-                  Object.fromEntries(kayitlilar.map((a) => [a.id, "Geldi" as const]))
+                  Object.fromEntries(
+                    yoklamaGirenler.map((a) => [a.id, "Geldi" as const]),
+                  ),
                 )
               }
               className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
@@ -348,7 +461,13 @@ export default function AkademiDetayPage() {
                 <th className="px-4 py-2.5">Konaklama</th>
                 <th className="px-4 py-2.5">Ayakkabı No</th>
                 <th className="px-4 py-2.5">Beden (Üst / Alt)</th>
-                <th className="px-4 py-2.5">Yoklama</th>
+                <th className="px-4 py-2.5">
+                  Yoklama
+                  {akademi.yoklama || yoklamaModu
+                    ? ` · ${gunNo(yoklamaGunu ?? seciliGun)}. gün`
+                    : ""}
+                </th>
+                <th className="px-4 py-2.5">Devam</th>
               </tr>
             </thead>
             <tbody>
@@ -367,8 +486,12 @@ export default function AkademiDetayPage() {
                         {a.ad} {a.soyad}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-500">{a.themisId}</td>
-                    <td className="px-4 py-3 text-zinc-600">{a.cinsiyet ?? "—"}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-zinc-500">
+                      {a.themisId}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-600">
+                      {a.cinsiyet ?? "—"}
+                    </td>
                     <td className="px-4 py-3 text-zinc-600">{a.kulup}</td>
                     <td className="px-4 py-3 text-zinc-600">
                       {a.bmOnayliKonaklama === "Evet"
@@ -377,17 +500,24 @@ export default function AkademiDetayPage() {
                           ? "Konaklamayacak"
                           : "—"}
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">{a.ayakkabiNo ?? "—"}</td>
+                    <td className="px-4 py-3 text-zinc-600">
+                      {a.ayakkabiNo ?? "—"}
+                    </td>
                     <td className="px-4 py-3 text-zinc-600">
                       {a.ustBeden ?? "—"} / {a.altBeden ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      {yoklamaModu ? (
+                      {yoklamaModu && yoklamaGirenler.includes(a) ? (
                         <div className="flex gap-1.5">
                           {(["Geldi", "Gelmedi"] as const).map((deger) => (
                             <button
                               key={deger}
-                              onClick={() => setYoklamaTaslak({ ...yoklamaTaslak, [a.id]: deger })}
+                              onClick={() =>
+                                setYoklamaTaslak({
+                                  ...yoklamaTaslak,
+                                  [a.id]: deger,
+                                })
+                              }
                               className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors ${
                                 y === deger
                                   ? deger === "Geldi"
@@ -401,17 +531,38 @@ export default function AkademiDetayPage() {
                           ))}
                         </div>
                       ) : y ? (
-                        <Badge label={y} tone={y === "Geldi" ? "green" : "red"} />
+                        <Badge
+                          label={y}
+                          tone={y === "Geldi" ? "green" : "red"}
+                        />
                       ) : (
                         <span className="text-zinc-300">—</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {(() => {
+                        const { geldi, alinan } = devamDurumu(akademi, a.id);
+                        if (!alinan)
+                          return <span className="text-zinc-300">—</span>;
+                        return (
+                          <span
+                            className={`font-semibold ${geldi < alinan ? "text-rose-600" : "text-zinc-700"}`}
+                            title={`${alinan - geldi} gün gelmedi`}
+                          >
+                            {geldi}/{alinan} gün
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );
               })}
               {gorunenler.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-sm text-zinc-400">
+                  <td
+                    colSpan={9}
+                    className="px-4 py-10 text-center text-sm text-zinc-400"
+                  >
                     {kayitlilar.length === 0
                       ? "Bu akademiye henüz aday kaydedilmedi."
                       : "Bu filtreyle eşleşen aday yok."}
@@ -425,16 +576,16 @@ export default function AkademiDetayPage() {
         {yoklamaModu && (
           <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-4 py-3">
             <span className="text-sm text-zinc-500">
-              {Object.keys(yoklamaTaslak).length} / {kayitlilar.length} aday işaretlendi
-              {Object.values(yoklamaTaslak).includes("Gelmedi") && (
-                <span className="ml-2 text-rose-600">
-                  · Gelmeyenlerin Akademi Eğitmeni sözleşmesi kapatılacak
-                </span>
-              )}
+              {gunNo(yoklamaGunu ?? ilkGun)}. gün ({yoklamaGunu}) ·{" "}
+              {Object.keys(yoklamaTaslak).length} / {yoklamaGirenler.length}{" "}
+              aday işaretlendi
             </span>
             <div className="flex gap-2">
               <button
-                onClick={() => setYoklamaTaslak(null)}
+                onClick={() => {
+                  setYoklamaTaslak(null);
+                  setYoklamaGunu(null);
+                }}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-500 hover:bg-zinc-100"
               >
                 Vazgeç
@@ -444,7 +595,9 @@ export default function AkademiDetayPage() {
                 disabled={!yoklamaTamam}
                 className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Yoklamayı Kaydet ve Başlat
+                {akademi.yoklama
+                  ? "Yoklamayı Kaydet"
+                  : "Yoklamayı Kaydet ve Başlat"}
               </button>
             </div>
           </div>
@@ -452,7 +605,10 @@ export default function AkademiDetayPage() {
       </div>
 
       {duzenleAcik && (
-        <AkademiDuzenleModal akademi={akademi} onClose={() => setDuzenleAcik(false)} />
+        <AkademiDuzenleModal
+          akademi={akademi}
+          onClose={() => setDuzenleAcik(false)}
+        />
       )}
     </div>
   );

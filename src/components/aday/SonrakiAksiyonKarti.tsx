@@ -2,25 +2,53 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, Clock } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
 import { MulakatPlanlaModal } from "@/components/aday/MulakatPlanlaModal";
 import { MulakatSonucuModal } from "@/components/aday/MulakatSonucuModal";
 import { SurecSonlandirModal } from "@/components/aday/SurecSonlandirModal";
 import { SozlesmeTipiSecimi } from "@/components/egitmen/SozlesmeTipiSecimi";
-import { bugun, inputTarihindenCevir, tarihCoz, yoklamaAlinabilirMi } from "@/lib/akademi";
+import {
+  bugun,
+  inputTarihindenCevir,
+  tarihCoz,
+  yoklamaAlinabilirMi,
+} from "@/lib/akademi";
 import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
+import { akademiGenelSonucu } from "@/lib/akademiSinav";
 import { useAkademiSinavSonuclari } from "@/lib/AkademiSinavSonuclariContext";
 import { ikYetkisiVarMi, useCurrentUser } from "@/lib/CurrentUserContext";
-import { egitmenBilgileriEksikMi, egitmeneGecir, sureceYenidenDahilEt } from "@/lib/egitmenGecis";
+import {
+  egitmenBilgileriEksikMi,
+  egitmeneGecir,
+  sureceYenidenDahilEt,
+} from "@/lib/egitmenGecis";
 import { degerlendirmeyiUygula } from "@/lib/mulakatDegerlendirme";
 import { enAcilSertifika, vizeDurumu, vizeKalanGun } from "@/lib/sertifika";
+import { onayBekleyenKayitlar } from "@/lib/sertifikaOnay";
 import type { AdayEgitmen, IstihdamTipi } from "@/lib/types";
 
 /** Kartın sekme değiştirerek yönlendirdiği yerler (AdayDetayIcerik sekme kimlikleri). */
-export type ProfilSekmesi = "genel" | "belgeler" | "kademe-federasyon" | "akademi-mulakat" | "sinav-sonuclari";
+export type ProfilSekmesi =
+  | "genel"
+  | "belgeler"
+  | "kademe-federasyon"
+  | "akademi-mulakat"
+  | "sinav-sonuclari";
 
 type Buton =
-  | { tur: "islem"; label: string; onClick: () => void; tehlikeli?: boolean; pasif?: boolean }
+  | {
+      tur: "islem";
+      label: string;
+      onClick: () => void;
+      tehlikeli?: boolean;
+      pasif?: boolean;
+    }
   | { tur: "link"; label: string; href: string };
 
 type Kart = {
@@ -67,18 +95,28 @@ export function SonrakiAksiyonKarti({
   const yapan = `${currentUser.ad} (${currentUser.rol})`;
   const duzenlenebilir = !!onAdayGuncelle;
   const donem = donemler.find((d) => d.id === aday.akademiDonemiId);
-  const sinavSonucu = sinavSonuclari.find(
-    (s) =>
-      s.egitmenId === aday.id && (!s.akademiDonemiId || s.akademiDonemiId === aday.akademiDonemiId)
-  )?.genelSonuc;
+  const sinavSonucu = akademiGenelSonucu(
+    sinavSonuclari,
+    aday.id,
+    aday.akademiDonemiId,
+  );
 
   const ac = (p: Pencere) => () => setPencere(p);
   const sekme = (s: ProfilSekmesi) => () => onSekmeAc(s);
   const sonlandirIkincil: Buton | undefined =
     ik && duzenlenebilir
-      ? { tur: "islem", label: "Süreci sonlandır", onClick: ac("sonlandir"), tehlikeli: true }
+      ? {
+          tur: "islem",
+          label: "Süreci sonlandır",
+          onClick: ac("sonlandir"),
+          tehlikeli: true,
+        }
       : undefined;
-  const ikBekleniyor = (baslik: string, aciklama: string, bilgi?: Kart["bilgi"]): Kart => ({
+  const ikBekleniyor = (
+    baslik: string,
+    aciklama: string,
+    bilgi?: Kart["bilgi"],
+  ): Kart => ({
     tip: "bekleme",
     baslik,
     aciklama,
@@ -90,10 +128,49 @@ export function SonrakiAksiyonKarti({
       }`
     : undefined;
   const akademiBilgisi = donem
-    ? { etiket: donem.ad, deger: `${donem.baslangicTarihi} – ${donem.bitisTarihi}` }
+    ? {
+        etiket: donem.ad,
+        deger: `${donem.baslangicTarihi} – ${donem.bitisTarihi}`,
+      }
     : undefined;
 
-  const kart = ((): Kart => {
+  // İK: başka işlem yoksa bu adayın onay bekleyen kayıtları sonraki aksiyon olarak gösterilir.
+  const bekleyenOnaylar = ik ? onayBekleyenKayitlar(aday) : [];
+  const onayKarti = (): Kart => ({
+    tip: "aksiyon",
+    baslik:
+      bekleyenOnaylar.length === 1
+        ? `${bekleyenOnaylar[0].baslik} onayınızı bekliyor`
+        : `${bekleyenOnaylar.length} kayıt onayınızı bekliyor`,
+    aciklama: "İnceleyip Onay Talepleri'nden onaylayın ya da reddedin.",
+    ek:
+      bekleyenOnaylar.length > 1 ? (
+        <div className="flex flex-col gap-1.5">
+          {bekleyenOnaylar.map((b) => (
+            <Link
+              key={b.talep}
+              href={`/onay-bekleyenler?aday=${aday.id}&talep=${b.talep}`}
+              className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-50"
+            >
+              <span className="min-w-0">
+                <span className="block truncate font-medium text-zinc-800">
+                  {b.baslik}
+                </span>
+                <span className="text-xs text-zinc-400">{b.detay}</span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-zinc-400" />
+            </Link>
+          ))}
+        </div>
+      ) : undefined,
+    buton: {
+      tur: "link",
+      label: "Onay Talepleri'nde incele",
+      href: `/onay-bekleyenler?aday=${aday.id}&talep=${bekleyenOnaylar[0]?.talep ?? ""}`,
+    },
+  });
+
+  const durumKarti = ((): Kart => {
     switch (aday.surecDurumu) {
       case "ilk_belge_seti_bekleniyor":
       case "ikinci_belge_seti_bekleniyor": {
@@ -102,17 +179,30 @@ export function SonrakiAksiyonKarti({
         const eksik = set.filter((b) => b.durum === "yuklenmedi");
         return {
           tip: "aksiyon",
-          baslik: ilk ? "Birinci belge setini yükle" : "İkinci belge setini yükle",
+          baslik: ilk
+            ? "Birinci belge setini yükle"
+            : "İkinci belge setini yükle",
           aciklama: ilk
             ? "Mülakat formu ve CV (KM mülakatında bölge müdürü onayı da) yüklendiğinde ikinci belge setine geçilir."
             : "Adli sicil, öğrenim durumu ve fiziki oryantasyon formu yüklenip İK onayına gönderilir.",
           bilgi:
             eksik.length > 0
-              ? { etiket: "Eksik belgeler", deger: eksik.map((b) => b.ad).join(", ") }
+              ? {
+                  etiket: "Eksik belgeler",
+                  deger: eksik.map((b) => b.ad).join(", "),
+                }
               : !ilk && !aday.dijitalOryantasyonTamamlandi
-                ? { etiket: "Eksik", deger: "Dijital oryantasyon tamamlanmadı", uyari: true }
+                ? {
+                    etiket: "Eksik",
+                    deger: "Dijital oryantasyon tamamlanmadı",
+                    uyari: true,
+                  }
                 : { etiket: "Belgeler", deger: "Tümü yüklendi" },
-          buton: { tur: "islem", label: "Belgeleri yükle", onClick: sekme("belgeler") },
+          buton: {
+            tur: "islem",
+            label: "Belgeleri yükle",
+            onClick: sekme("belgeler"),
+          },
         };
       }
       case "ik_onayi_bekliyor":
@@ -130,7 +220,7 @@ export function SonrakiAksiyonKarti({
             }
           : ikBekleniyor(
               "İK belge onayı bekleniyor",
-              "İkinci belge seti İK onayına gönderildi. Onaylandığında İK akademi mülakatını planlar."
+              "İkinci belge seti İK onayına gönderildi. Onaylandığında İK akademi mülakatını planlar.",
             );
       case "mulakat_sonucu_bekleniyor":
         if (!aday.mulakatPlanlananTarihi) {
@@ -140,11 +230,15 @@ export function SonrakiAksiyonKarti({
                 baslik: "Akademi mülakatını planla",
                 aciklama:
                   "Belge setleri tamamlandı ve onaylandı. Tarih planlandığında adayı ekleyen kulüp müdürüne bildirim gider.",
-                buton: { tur: "islem", label: "Mülakatı planla", onClick: ac("planla") },
+                buton: {
+                  tur: "islem",
+                  label: "Mülakatı planla",
+                  onClick: ac("planla"),
+                },
               }
             : ikBekleniyor(
                 "İK mülakatı planlayacak",
-                "Belgeler tamam. Akademi mülakatının tarihi İK tarafından belirlenecek; planlandığında bildirim alırsınız."
+                "Belgeler tamam. Akademi mülakatının tarihi İK tarafından belirlenecek; planlandığında bildirim alırsınız.",
               );
         }
         return ik
@@ -154,12 +248,16 @@ export function SonrakiAksiyonKarti({
               aciklama:
                 "6 kriteri 1 / 0 olarak değerlendirin; en az 4 kriteri karşılayan aday olumlu sonuçlanır.",
               bilgi: { etiket: "Mülakat tarihi", deger: mulakatTarihi! },
-              buton: { tur: "islem", label: "Mülakat formunu aç", onClick: ac("sonuc") },
+              buton: {
+                tur: "islem",
+                label: "Mülakat formunu aç",
+                onClick: ac("sonuc"),
+              },
             }
           : ikBekleniyor(
               "Akademi mülakatı planlandı",
               "Mülakat sonrası sonuç İK tarafından girilecek.",
-              { etiket: "Mülakat tarihi", deger: mulakatTarihi! }
+              { etiket: "Mülakat tarihi", deger: mulakatTarihi! },
             );
       case "mulakata_katilmadi":
         return ik
@@ -168,9 +266,16 @@ export function SonrakiAksiyonKarti({
               baslik: "Mülakatı yeniden planla",
               aciklama:
                 "Aday planlanan akademi mülakatına katılmadı. Yeni tarih planlandığında kulüp müdürüne bildirim gider.",
-              buton: { tur: "islem", label: "Yeniden planla", onClick: ac("planla") },
+              buton: {
+                tur: "islem",
+                label: "Yeniden planla",
+                onClick: ac("planla"),
+              },
             }
-          : ikBekleniyor("Aday mülakata katılmadı", "İK mülakatı yeniden planlayacak.");
+          : ikBekleniyor(
+              "Aday mülakata katılmadı",
+              "İK mülakatı yeniden planlayacak.",
+            );
       case "akademi_egitimine_hazir":
         return {
           tip: "aksiyon",
@@ -178,7 +283,11 @@ export function SonrakiAksiyonKarti({
           aciklama: ik
             ? "Akademi dönemini, vergi levhasını ve kıyafet bedenlerini girip kaydedin; aday Akademi Eğitmeni olur."
             : "Akademi dönemini, vergi levhasını ve kıyafet bedenlerini girip İK onayına gönderin.",
-          buton: { tur: "islem", label: "Davet formunu aç", onClick: sekme("akademi-mulakat") },
+          buton: {
+            tur: "islem",
+            label: "Davet formunu aç",
+            onClick: sekme("akademi-mulakat"),
+          },
         };
       case "akademi_daveti_onayi_bekliyor":
         return ik
@@ -197,7 +306,7 @@ export function SonrakiAksiyonKarti({
           : ikBekleniyor(
               "Akademi daveti İK onayında",
               "Onaylandığında aday Akademi Eğitmeni olur ve seçilen akademiye kaydedilir.",
-              akademiBilgisi
+              akademiBilgisi,
             );
       case "akademiye_katilmadi": {
         const son = aday.katilmadigiAkademiler?.at(-1);
@@ -213,7 +322,11 @@ export function SonrakiAksiyonKarti({
                 uyari: true,
               }
             : undefined,
-          buton: { tur: "islem", label: "Yeniden davet et", onClick: sekme("akademi-mulakat") },
+          buton: {
+            tur: "islem",
+            label: "Yeniden davet et",
+            onClick: sekme("akademi-mulakat"),
+          },
           ikincil: sonlandirIkincil,
         };
       }
@@ -225,7 +338,11 @@ export function SonrakiAksiyonKarti({
                 baslik: "Süreci sonlandır",
                 aciklama:
                   "Genel akademi sınav sonucu Kaldı; aday eğitmen statüsüne geçirilemez. Süreç sonlandırıldığında kulüp müdürüne bildirim gider.",
-                bilgi: { etiket: "Akademi sınavı", deger: "Kaldı", uyari: true },
+                bilgi: {
+                  etiket: "Akademi sınavı",
+                  deger: "Kaldı",
+                  uyari: true,
+                },
                 buton: {
                   tur: "islem",
                   label: "Süreci sonlandır",
@@ -233,16 +350,23 @@ export function SonrakiAksiyonKarti({
                   tehlikeli: true,
                 },
               }
-            : ikBekleniyor("Akademi sınavından kaldı", "Süreç İK tarafından sonlandırılacak.");
+            : ikBekleniyor(
+                "Akademi sınavından kaldı",
+                "Süreç İK tarafından sonlandırılacak.",
+              );
         }
         if (donem && ik && yoklamaAlinabilirMi(donem)) {
           return {
             tip: "aksiyon",
-            baslik: "Akademiyi başlat",
+            baslik: "Akademi yoklamasını al",
             aciklama:
-              "Akademinin ilk günü geldi. Yoklama alınarak akademi başlatılır; gelmeyen adayların sözleşmesi kapatılır.",
+              "Akademinin ilk günü geldi. Yoklama her eğitim günü alınır; gelmemek devamsızlık sayılır. Akademi bitince devamsızlığı olanların sözleşmesi isterseniz kapatılır.",
             bilgi: akademiBilgisi,
-            buton: { tur: "link", label: "Akademiye git", href: `/akademi/${donem.id}` },
+            buton: {
+              tur: "link",
+              label: "Akademiye git",
+              href: `/akademi/${donem.id}`,
+            },
           };
         }
         const bitis = donem && tarihCoz(donem.bitisTarihi);
@@ -263,7 +387,7 @@ export function SonrakiAksiyonKarti({
             : ikBekleniyor(
                 "Akademi sınav sonucu bekleniyor",
                 "Sonuç İK tarafından yüklenecek.",
-                akademiBilgisi
+                akademiBilgisi,
               );
         }
         const baslangic = donem && tarihCoz(donem.baslangicTarihi);
@@ -273,7 +397,8 @@ export function SonrakiAksiyonKarti({
             baslangic && bugun() < baslangic
               ? "Akademi başlangıcı bekleniyor"
               : "Akademi devam ediyor",
-          aciklama: "Akademi bittiğinde sınav sonucu yüklenir; geçen aday eğitmenliğe geçirilir.",
+          aciklama:
+            "Akademi bittiğinde sınav sonucu yüklenir; geçen aday eğitmenliğe geçirilir.",
           bilgi: akademiBilgisi,
           ikincil: sonlandirIkincil,
         };
@@ -282,7 +407,7 @@ export function SonrakiAksiyonKarti({
         if (!ik) {
           return ikBekleniyor(
             "Eğitmenliğe geçiş bekleniyor",
-            "Aday akademi sınavını geçti. İK sözleşme tipini seçip eğitmen statüsüne geçirecek."
+            "Aday akademi sınavını geçti. İK sözleşme tipini seçip eğitmen statüsüne geçirecek.",
           );
         }
         const eksik = egitmenBilgileriEksikMi(aday);
@@ -294,13 +419,14 @@ export function SonrakiAksiyonKarti({
           ek: eksik ? (
             <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-white p-3 text-sm text-rose-700">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              Ayakkabı numarası, üst ve alt beden eksik. Kişisel bilgilerdeki Kıyafet Beden
-              Bilgisi&apos;ni doldurun.
+              Ayakkabı numarası, üst ve alt beden eksik. Kişisel bilgilerdeki
+              Kıyafet Beden Bilgisi&apos;ni doldurun.
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold text-zinc-500">
-                Sözleşme tipi ve alt sözleşme tipi<span className="ml-0.5 text-rose-500">*</span>
+                Sözleşme tipi ve alt sözleşme tipi
+                <span className="ml-0.5 text-rose-500">*</span>
               </span>
               <SozlesmeTipiSecimi
                 tip={tip}
@@ -316,7 +442,8 @@ export function SonrakiAksiyonKarti({
             tur: "islem",
             label: "Eğitmenliğe geçir",
             pasif: eksik || !tip || !altTip,
-            onClick: () => tip && onAdayGuncelle?.(egitmeneGecir(aday, tip, altTip, yapan)),
+            onClick: () =>
+              tip && onAdayGuncelle?.(egitmeneGecir(aday, tip, altTip, yapan)),
           },
         };
       }
@@ -328,7 +455,10 @@ export function SonrakiAksiyonKarti({
             ? "Akademi mülakatı olumsuz sonuçlandı; aday 6 ay sonra tekrar değerlendirilebilir. Dahil edildiğinde İK mülakatı yeniden planlar."
             : "Aday yeniden değerlendirilebilir olarak işaretlendi. Dahil edildiğinde İK mülakatı yeniden planlar.",
           bilgi: aday.gorusmeSonucuTarihi
-            ? { etiket: "Değerlendirme tarihi", deger: aday.gorusmeSonucuTarihi }
+            ? {
+                etiket: "Değerlendirme tarihi",
+                deger: aday.gorusmeSonucuTarihi,
+              }
             : undefined,
           buton: {
             tur: "islem",
@@ -343,9 +473,9 @@ export function SonrakiAksiyonKarti({
           const kalan = vizeKalanGun(s) ?? 0;
           return {
             tip: "aksiyon",
-            baslik: "Sertifika vizesini yenile",
+            baslik: "Gelişim semineriyle vizeyi yenile",
             aciklama:
-              "Yeni vize bilgisi ve belgesi girilip İK onayına gönderildiğinde uyarı kalkar.",
+              "Son 1 yıl içinde gelişim semineri girilip İK onaylayınca vize yenilenir ve uyarı kalkar.",
             bilgi: {
               etiket: `${s.brans} vize bitişi`,
               deger: `${s.vizeBitisTarihi} · ${kalan < 0 ? `${-kalan} gün önce doldu` : `${kalan} gün kaldı`}`,
@@ -377,7 +507,8 @@ export function SonrakiAksiyonKarti({
         return {
           tip: "bitti",
           baslik: "Süreç sonlandırıldı",
-          aciklama: aday.surecSonlandirma?.aciklama ?? "Adayın süreci sonlandırıldı.",
+          aciklama:
+            aday.surecSonlandirma?.aciklama ?? "Adayın süreci sonlandırıldı.",
           bilgi: aday.surecSonlandirma
             ? {
                 etiket: aday.surecSonlandirma.neden,
@@ -390,12 +521,19 @@ export function SonrakiAksiyonKarti({
           tip: "bitti",
           baslik: "Pasif eğitmen",
           aciklama: aday.fesihSekli ?? "Eğitmenin çıkışı yapıldı.",
-          bilgi: aday.cikisTarihi ? { etiket: "Çıkış tarihi", deger: aday.cikisTarihi } : undefined,
+          bilgi: aday.cikisTarihi
+            ? { etiket: "Çıkış tarihi", deger: aday.cikisTarihi }
+            : undefined,
         };
       default:
         return { tip: "bitti", baslik: "Bekleyen işlem yok", aciklama: "" };
     }
   })();
+
+  const kart =
+    durumKarti.tip === "bitti" && bekleyenOnaylar.length > 0
+      ? onayKarti()
+      : durumKarti;
 
   const ust = UST_BASLIK[kart.tip];
   const BilgiIkonu = kart.tip === "bekleme" ? Clock : CalendarDays;
@@ -439,7 +577,9 @@ export function SonrakiAksiyonKarti({
         )}
         <h3 className="text-base font-semibold text-zinc-900">{kart.baslik}</h3>
       </div>
-      {kart.aciklama && <p className="text-sm text-zinc-500">{kart.aciklama}</p>}
+      {kart.aciklama && (
+        <p className="text-sm text-zinc-500">{kart.aciklama}</p>
+      )}
       {kart.bilgi && (
         <div className="flex items-center gap-2.5 rounded-xl border border-zinc-100 bg-zinc-50/50 px-3 py-2.5">
           <BilgiIkonu

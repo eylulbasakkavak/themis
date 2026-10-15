@@ -6,9 +6,9 @@ import {
   Check,
   ChevronDown,
   Columns3,
+  ListFilter,
   Download,
   GripVertical,
-  Plus,
   Search,
   Trash2,
   X,
@@ -16,27 +16,49 @@ import {
 import { useAdaylar } from "@/lib/AdaylarContext";
 import { tarihCoz } from "@/lib/akademi";
 import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
+import { gxDersleri, gxYetkinlikleri } from "@/lib/akademiSinav";
+import { VARSAYILAN_SINAV_BASLIKLARI } from "@/lib/akademiSinavExcel";
+import { useAkademiSinavSonuclari } from "@/lib/AkademiSinavSonuclariContext";
 import {
   ALT_SOZLESME_TIPLERI,
   CINSIYET_SECENEKLERI,
   EGITIM_BILGISI_SECENEKLERI,
+  FEDERASYON_KADEME_SECENEKLERI,
   FESIH_SEKLI_SECENEKLERI,
   ISTIHDAM_TIPLERI,
 } from "@/lib/egitmenSecenekleri";
-import { iseGirisTarihi } from "@/lib/egitmenGecis";
+import { iseGirisTarihi, sozlesmeDegisiklikleri } from "@/lib/egitmenGecis";
 import { KULUPLER } from "@/lib/kulupler";
-import { fitnessSertifikasi } from "@/lib/sertifika";
+import {
+  aktifSertifika,
+  BRANS_TANIMLARI,
+  fitnessSertifikasi,
+  GERI_SAYIM_ETIKETI,
+  ilkKademeBelgeTarihi,
+  kademeGeriSayimi,
+  TEMEL_BRANS,
+} from "@/lib/sertifika";
 import { onayliIhtarlar } from "@/lib/sertifikaOnay";
 import { UYELIK_TIPLERI, uyelikTipi } from "@/lib/status";
 import type { AdayEgitmen, AkademiDonemi } from "@/lib/types";
 
-type Baglam = { donemi: (a: AdayEgitmen) => AkademiDonemi | undefined };
+type Baglam = {
+  donemi: (a: AdayEgitmen) => AkademiDonemi | undefined;
+  // GX dersleri: akademi kararına göre verebildiği dersler.
+  gxVerebildigi: (a: AdayEgitmen) => string[];
+};
 
 /* ------------------------------------------------------------------ */
 /* Ortak değerler                                                      */
 /* ------------------------------------------------------------------ */
 
-const KADEME_SECENEKLERI = ["1. Kademe", "2. Kademe", "3. Kademe", "4. Kademe", "5. Kademe"];
+const KADEME_SECENEKLERI = [
+  "1. Kademe",
+  "2. Kademe",
+  "3. Kademe",
+  "4. Kademe",
+  "5. Kademe",
+];
 
 const kademe = (a: AdayEgitmen) => {
   const f = fitnessSertifikasi(a);
@@ -44,32 +66,63 @@ const kademe = (a: AdayEgitmen) => {
 };
 
 const mulakatSonucu = (a: AdayEgitmen) =>
-  a.gorusmeSonucu === "Olumlu" || a.gorusmeSonucu === "Olumsuz" || a.gorusmeSonucu === "Katılmadı"
+  a.gorusmeSonucu === "Olumlu" ||
+  a.gorusmeSonucu === "Olumsuz" ||
+  a.gorusmeSonucu === "Katılmadı"
     ? a.gorusmeSonucu
     : "";
 
 const ihtarVarMi = (a: AdayEgitmen) => onayliIhtarlar(a).length > 0;
 
+/** Kulüp / kira değişiklikleri: "Eski → Yeni (tarih)", birden fazlaysa "; " ile. */
+const degisiklikler = (a: AdayEgitmen, tur: "kulup" | "kira") =>
+  sozlesmeDegisiklikleri(a)
+    .filter((d) => d.tur === tur)
+    .map((d) => `${d.eski} → ${d.yeni} (${d.tarih})`)
+    .join("; ");
+
 /* ------------------------------------------------------------------ */
 /* Kolonlar                                                            */
 /* ------------------------------------------------------------------ */
 
-type Kolon = { anahtar: string; baslik: string; deger: (a: AdayEgitmen, b: Baglam) => string };
+type Kolon = {
+  anahtar: string;
+  baslik: string;
+  deger: (a: AdayEgitmen, b: Baglam) => string;
+};
 
 const KOLONLAR: Kolon[] = [
   { anahtar: "id", baslik: "Eğitmen ID", deger: (a) => a.themisId },
-  { anahtar: "adSoyad", baslik: "Ad Soyad", deger: (a) => `${a.ad} ${a.soyad}` },
+  {
+    anahtar: "adSoyad",
+    baslik: "Ad Soyad",
+    deger: (a) => `${a.ad} ${a.soyad}`,
+  },
   { anahtar: "kulup", baslik: "Kulüp", deger: (a) => a.kulup },
   { anahtar: "telefon", baslik: "Telefon", deger: (a) => a.telefon },
-  { anahtar: "sozlesmeTipi", baslik: "Sözleşme Tipi", deger: (a) => a.istihdamTipi ?? "" },
+  {
+    anahtar: "sozlesmeTipi",
+    baslik: "Sözleşme Tipi",
+    deger: (a) => a.istihdamTipi ?? "",
+  },
   {
     anahtar: "altSozlesmeTipi",
     baslik: "Alt Sözleşme Tipi",
     deger: (a) => a.altSozlesmeTipi ?? "",
   },
   { anahtar: "kademe", baslik: "Kademe Durumu", deger: kademe },
+  {
+    anahtar: "federasyonBelgeTarihi",
+    baslik: "Federasyon Belgesi Alınma Tarihi",
+    deger: (a) =>
+      (a.federasyonBelgeTarihi ?? "").split("-").reverse().join("."),
+  },
   { anahtar: "iseGiris", baslik: "İşe Giriş Tarihi", deger: iseGirisTarihi },
-  { anahtar: "istenCikis", baslik: "İşten Çıkış Tarihi", deger: (a) => a.cikisTarihi ?? "" },
+  {
+    anahtar: "istenCikis",
+    baslik: "İşten Çıkış Tarihi",
+    deger: (a) => a.cikisTarihi ?? "",
+  },
   {
     anahtar: "akademiBaslangic",
     baslik: "Akademi Başlangıç Tarihi",
@@ -80,19 +133,47 @@ const KOLONLAR: Kolon[] = [
     baslik: "Akademi Bitiş Tarihi",
     deger: (a, b) => b.donemi(a)?.bitisTarihi ?? "",
   },
-  { anahtar: "statu", baslik: "Statü", deger: (a) => uyelikTipi(a.surecDurumu) },
+  {
+    anahtar: "statu",
+    baslik: "Statü",
+    deger: (a) => uyelikTipi(a.surecDurumu),
+  },
   {
     anahtar: "durum",
     baslik: "Eğitmen Durumu",
-    deger: (a) => (uyelikTipi(a.surecDurumu) === "Pasif Eğitmen" ? "Pasif" : "Aktif"),
+    deger: (a) =>
+      uyelikTipi(a.surecDurumu) === "Pasif Eğitmen" ? "Pasif" : "Aktif",
   },
   { anahtar: "mulakatSonucu", baslik: "Mülakat Sonucu", deger: mulakatSonucu },
   { anahtar: "tckn", baslik: "TCKN", deger: (a) => a.tcKimlikNo ?? "" },
   { anahtar: "cinsiyet", baslik: "Cinsiyet", deger: (a) => a.cinsiyet ?? "" },
   { anahtar: "eposta", baslik: "E-posta", deger: (a) => a.eposta ?? "" },
   { anahtar: "egitim", baslik: "Eğitim", deger: (a) => a.egitimBilgisi ?? "" },
-  { anahtar: "fesihSekli", baslik: "Fesih Şekli", deger: (a) => a.fesihSekli ?? "" },
-  { anahtar: "fesihNedeni", baslik: "Fesih Nedeni", deger: (a) => a.fesihNedeni ?? "" },
+  {
+    anahtar: "kulupDegisikligi",
+    baslik: "Kulüp Değişikliği",
+    deger: (a) => degisiklikler(a, "kulup"),
+  },
+  {
+    anahtar: "kiraDegisikligi",
+    baslik: "Kira Değişikliği",
+    deger: (a) => degisiklikler(a, "kira"),
+  },
+  {
+    anahtar: "gxVerebildigi",
+    baslik: "GX Verebildiği Dersler",
+    deger: (a, b) => b.gxVerebildigi(a).join(", "),
+  },
+  {
+    anahtar: "fesihSekli",
+    baslik: "Fesih Şekli",
+    deger: (a) => a.fesihSekli ?? "",
+  },
+  {
+    anahtar: "fesihNedeni",
+    baslik: "Fesih Nedeni",
+    deger: (a) => a.fesihNedeni ?? "",
+  },
   {
     anahtar: "ihtar",
     baslik: "İhtar Durumu",
@@ -101,7 +182,45 @@ const KOLONLAR: Kolon[] = [
   {
     anahtar: "artiBir",
     baslik: "Eğitmen +1 Kullanımı",
-    deger: (a) => (a.artiBirKullanimlari ?? []).map((u) => `${u.uyeId} - ${u.uyeAdi}`).join("; "),
+    deger: (a) =>
+      (a.artiBirKullanimlari ?? [])
+        .map((u) => `${u.uyeId} - ${u.uyeAdi}`)
+        .join("; "),
+  },
+  // --- Fitness federasyon ve kademe geri sayımı (Eğitmen Detay Sertifika sheet'i) ---
+  {
+    anahtar: "fitnessFederasyonDurumu",
+    baslik: "Fitness Federasyon Durumu",
+    deger: (a) => a.federasyonKademeDurumu ?? "",
+  },
+  {
+    anahtar: "ilkKademeBelgeTarihi",
+    baslik: "1. Kademe Belge Tarihi",
+    deger: (a) => ilkKademeBelgeTarihi(a, TEMEL_BRANS),
+  },
+  {
+    anahtar: "aktifKademeBelgeTarihi",
+    baslik: "Aktif Kademe Belge Tarihi",
+    deger: (a) => kademeGeriSayimi(a, TEMEL_BRANS).belgeTarihi ?? "",
+  },
+  {
+    anahtar: "belgedenGecenSure",
+    baslik: "Belgeden Geçen Süre (Yıl)",
+    deger: (a) => {
+      const y = kademeGeriSayimi(a, TEMEL_BRANS).gecenYil;
+      return y === undefined ? "" : y.toFixed(1).replace(".", ",");
+    },
+  },
+  {
+    anahtar: "kademeGeriSayimi",
+    baslik: "Kademe Geri Sayımı",
+    deger: (a) => kademeGeriSayimi(a, TEMEL_BRANS).metin,
+  },
+  {
+    // Fitness dışındaki branşlardaki kademeler tek kolonda (geri sayım yalnızca Fitness için).
+    anahtar: "digerFederasyon",
+    baslik: "Diğer Federasyon Kademeleri",
+    deger: (a) => digerFederasyonKademeleri(a).join(" · "),
   },
 ];
 
@@ -129,22 +248,153 @@ type FiltreAlani =
       tip: "coklu";
       secenekler: readonly string[];
       deger: (a: AdayEgitmen, b: Baglam) => string;
+      // Birden fazla değerli alanlar (ör. GX dersleri): seçilenlerden biri varsa eşleşir.
+      degerler?: (a: AdayEgitmen, b: Baglam) => string[];
     }
   | {
       anahtar: string;
       baslik: string;
       tip: "tarih";
       // Kişinin ilgili tarihi seçilen aralığa düşüyor mu.
-      uyar: (a: AdayEgitmen, b: Baglam, bas: Date | null, bit: Date | null) => boolean;
+      uyar: (
+        a: AdayEgitmen,
+        b: Baglam,
+        bas: Date | null,
+        bit: Date | null,
+      ) => boolean;
     }
-  | { anahtar: string; baslik: string; tip: "metin"; deger: (a: AdayEgitmen) => string };
+  | {
+      anahtar: string;
+      baslik: string;
+      tip: "metin";
+      deger: (a: AdayEgitmen) => string;
+    };
 
 /** Boş bırakılan uç sınırsız sayılır. */
 function aralikta(t: Date | null, bas: Date | null, bit: Date | null): boolean {
   return !!t && (!bas || t >= bas) && (!bit || t <= bit);
 }
 
+/** Fitness dışındaki branşlarda aktif kademeler: "Pilates 1. Kademe". */
+function digerFederasyonKademeleri(a: AdayEgitmen): string[] {
+  return BRANS_TANIMLARI.filter((b) => b.ad !== TEMEL_BRANS).flatMap((b) => {
+    const s = aktifSertifika(a, b.ad);
+    return s ? [`${b.ad} ${s.kademe}. Kademe`] : [];
+  });
+}
+
+const DIGER_FEDERASYON_SECENEKLERI = BRANS_TANIMLARI.filter(
+  (b) => b.ad !== TEMEL_BRANS,
+).flatMap((b) =>
+  Array.from({ length: b.kademeSayisi }, (_, i) => `${b.ad} ${i + 1}. Kademe`),
+);
+
+const SURE_ARALIKLARI = [
+  { ad: "1 yıldan az", alt: 0, ust: 1 },
+  { ad: "1–2 yıl", alt: 1, ust: 2 },
+  { ad: "2–4 yıl", alt: 2, ust: 4 },
+  { ad: "4 yıl ve üzeri", alt: 4, ust: Infinity },
+];
+const sureAraligi = (yil?: number) =>
+  yil === undefined
+    ? ""
+    : (SURE_ARALIKLARI.find((r) => yil >= r.alt && yil < r.ust)?.ad ?? "");
+
 const FILTRE_ALANLARI: FiltreAlani[] = [
+  {
+    anahtar: "id",
+    baslik: "Eğitmen ID",
+    tip: "metin",
+    deger: (a) => a.themisId,
+  },
+  {
+    anahtar: "adSoyad",
+    baslik: "Ad Soyad",
+    tip: "metin",
+    deger: (a) => `${a.ad} ${a.soyad}`,
+  },
+  {
+    anahtar: "telefon",
+    baslik: "Telefon",
+    tip: "metin",
+    deger: (a) => a.telefon,
+  },
+  {
+    anahtar: "tckn",
+    baslik: "TCKN",
+    tip: "metin",
+    deger: (a) => a.tcKimlikNo ?? "",
+  },
+  {
+    anahtar: "eposta",
+    baslik: "E-posta",
+    tip: "metin",
+    deger: (a) => a.eposta ?? "",
+  },
+  {
+    anahtar: "durum",
+    baslik: "Eğitmen Durumu",
+    tip: "coklu",
+    secenekler: ["Aktif", "Pasif"],
+    deger: (a) =>
+      uyelikTipi(a.surecDurumu) === "Pasif Eğitmen" ? "Pasif" : "Aktif",
+  },
+  {
+    anahtar: "fitnessFederasyonDurumu",
+    baslik: "Fitness Federasyon Durumu",
+    tip: "coklu",
+    // Geçmişteki eğitmenler için denklik ve "belgem yok" durumları da raporda seçilebilir.
+    secenekler: FEDERASYON_KADEME_SECENEKLERI,
+    deger: (a) => a.federasyonKademeDurumu ?? "",
+  },
+  {
+    anahtar: "ilkKademeBelgeTarihi",
+    baslik: "1. Kademe Belge Tarihi",
+    tip: "tarih",
+    uyar: (a, _, bas, bit) =>
+      aralikta(tarihCoz(ilkKademeBelgeTarihi(a, TEMEL_BRANS)), bas, bit),
+  },
+  {
+    anahtar: "kademeGeriSayimi",
+    baslik: "Kademe Geri Sayımı",
+    tip: "coklu",
+    secenekler: Object.values(GERI_SAYIM_ETIKETI),
+    deger: (a) => GERI_SAYIM_ETIKETI[kademeGeriSayimi(a, TEMEL_BRANS).durum],
+  },
+  {
+    // Branş ve kademeye göre: seçilen "Branş N. Kademe"lerden birine sahip olanlar.
+    anahtar: "digerFederasyon",
+    baslik: "Diğer Federasyon Kademeleri",
+    tip: "coklu",
+    secenekler: DIGER_FEDERASYON_SECENEKLERI,
+    deger: (a) => digerFederasyonKademeleri(a).join(" · "),
+    degerler: (a) => digerFederasyonKademeleri(a),
+  },
+  {
+    anahtar: "aktifKademeBelgeTarihi",
+    baslik: "Aktif Kademe Belge Tarihi",
+    tip: "tarih",
+    uyar: (a, _, bas, bit) =>
+      aralikta(
+        tarihCoz(kademeGeriSayimi(a, TEMEL_BRANS).belgeTarihi ?? ""),
+        bas,
+        bit,
+      ),
+  },
+  {
+    anahtar: "belgedenGecenSure",
+    baslik: "Belgeden Geçen Süre (Yıl)",
+    tip: "coklu",
+    secenekler: SURE_ARALIKLARI.map((r) => r.ad),
+    deger: (a) => sureAraligi(kademeGeriSayimi(a, TEMEL_BRANS).gecenYil),
+  },
+  {
+    anahtar: "artiBir",
+    baslik: "Eğitmen +1 Kullanımı",
+    tip: "coklu",
+    secenekler: ["Var", "Yok"],
+    deger: (a) => ((a.artiBirKullanimlari ?? []).length ? "Var" : "Yok"),
+  },
   {
     anahtar: "statu",
     baslik: "Statü",
@@ -152,7 +402,13 @@ const FILTRE_ALANLARI: FiltreAlani[] = [
     secenekler: UYELIK_TIPLERI,
     deger: (a) => uyelikTipi(a.surecDurumu),
   },
-  { anahtar: "kulup", baslik: "Kulüp", tip: "coklu", secenekler: KULUPLER, deger: (a) => a.kulup },
+  {
+    anahtar: "kulup",
+    baslik: "Kulüp",
+    tip: "coklu",
+    secenekler: KULUPLER,
+    deger: (a) => a.kulup,
+  },
   {
     anahtar: "sozlesmeTipi",
     baslik: "Sözleşme Tipi",
@@ -175,6 +431,20 @@ const FILTRE_ALANLARI: FiltreAlani[] = [
     deger: kademe,
   },
   {
+    // Federasyon kademe belgesini iki tarih arasında alanlar (aday eklenirken girilen tarih).
+    anahtar: "federasyonBelgeTarihi",
+    baslik: "Federasyon Belgesi Alınma Tarihi",
+    tip: "tarih",
+    uyar: (a, _, bas, bit) =>
+      aralikta(
+        a.federasyonBelgeTarihi
+          ? new Date(`${a.federasyonBelgeTarihi}T00:00`)
+          : null,
+        bas,
+        bit,
+      ),
+  },
+  {
     // İki tarih arasında işe girenler.
     anahtar: "iseGiris",
     baslik: "İşe Giriş Tarihi",
@@ -186,7 +456,8 @@ const FILTRE_ALANLARI: FiltreAlani[] = [
     anahtar: "istenCikis",
     baslik: "İşten Çıkış Tarihi",
     tip: "tarih",
-    uyar: (a, _, bas, bit) => aralikta(a.cikisTarihi ? tarihCoz(a.cikisTarihi) : null, bas, bit),
+    uyar: (a, _, bas, bit) =>
+      aralikta(a.cikisTarihi ? tarihCoz(a.cikisTarihi) : null, bas, bit),
   },
   {
     // Akademi dönemi seçilen aralıkla kesişenler (aralıkta akademide bulunanlar).
@@ -223,10 +494,44 @@ const FILTRE_ALANLARI: FiltreAlani[] = [
     deger: (a) => a.egitimBilgisi ?? "",
   },
   {
+    // İki tarih arasında kulüp değiştirenler.
+    anahtar: "kulupDegisikligi",
+    baslik: "Kulüp Değişikliği",
+    tip: "tarih",
+    uyar: (a, _, bas, bit) =>
+      sozlesmeDegisiklikleri(a).some(
+        (d) => d.tur === "kulup" && aralikta(tarihCoz(d.tarih), bas, bit),
+      ),
+  },
+  {
+    // İki tarih arasında kira (sözleşme tipi) değişikliği olanlar.
+    anahtar: "kiraDegisikligi",
+    baslik: "Kira Değişikliği",
+    tip: "tarih",
+    uyar: (a, _, bas, bit) =>
+      sozlesmeDegisiklikleri(a).some(
+        (d) => d.tur === "kira" && aralikta(tarihCoz(d.tarih), bas, bit),
+      ),
+  },
+  {
+    // Seçilen GX derslerinden en az birini verebilenler (akademi kararına göre).
+    anahtar: "gxVerebildigi",
+    baslik: "GX Verebildiği Dersler",
+    tip: "coklu",
+    secenekler: gxDersleri(VARSAYILAN_SINAV_BASLIKLARI),
+    deger: (a, b) => b.gxVerebildigi(a).join(", "),
+    degerler: (a, b) => b.gxVerebildigi(a),
+  },
+  {
     anahtar: "fesihSekli",
     baslik: "Fesih Şekli",
     tip: "coklu",
-    secenekler: FESIH_SEKLI_SECENEKLERI,
+    // Geçmiş kayıtlardaki "Kira / Kulüp Değişikliği" fesih şekilleri de raporda seçilebilir.
+    secenekler: [
+      ...FESIH_SEKLI_SECENEKLERI,
+      "Kira Değişikliği",
+      "Kulüp Değişikliği",
+    ],
     deger: (a) => a.fesihSekli ?? "",
   },
   {
@@ -244,7 +549,116 @@ const FILTRE_ALANLARI: FiltreAlani[] = [
   },
 ];
 
-const alanBul = (anahtar: string) => FILTRE_ALANLARI.find((f) => f.anahtar === anahtar)!;
+/** Filtre ve kolon listelerindeki gruplar (aynı alan iki listede de aynı grupta). */
+const GRUPLAR: { ad: string; alanlar: string[] }[] = [
+  {
+    ad: "Kişi",
+    alanlar: [
+      "id",
+      "adSoyad",
+      "telefon",
+      "tckn",
+      "eposta",
+      "cinsiyet",
+      "egitim",
+    ],
+  },
+  {
+    ad: "Sözleşme",
+    alanlar: [
+      "durum",
+      "statu",
+      "kulup",
+      "sozlesmeTipi",
+      "altSozlesmeTipi",
+      "iseGiris",
+      "istenCikis",
+      "kulupDegisikligi",
+      "kiraDegisikligi",
+      "fesihSekli",
+      "fesihNedeni",
+    ],
+  },
+  {
+    ad: "Federasyon & Kademe",
+    alanlar: [
+      "fitnessFederasyonDurumu",
+      "kademe",
+      "federasyonBelgeTarihi",
+      "ilkKademeBelgeTarihi",
+      "aktifKademeBelgeTarihi",
+      "belgedenGecenSure",
+      "kademeGeriSayimi",
+      "digerFederasyon",
+    ],
+  },
+  {
+    ad: "Akademi",
+    alanlar: [
+      "akademi",
+      "akademiBaslangic",
+      "akademiBitis",
+      "mulakatSonucu",
+      "gxVerebildigi",
+    ],
+  },
+  { ad: "Diğer", alanlar: ["ihtar", "artiBir"] },
+];
+
+/** Alanları gruplarına göre ayırır (tanımsızlar "Diğer"e); arama başlıkta yapılır. */
+function grupla<T extends { anahtar: string; baslik: string }>(
+  alanlar: T[],
+  aramaMetni: string,
+): { ad: string; alanlar: T[] }[] {
+  const q = aramaMetni.trim().toLocaleLowerCase("tr-TR");
+  const uyan = alanlar.filter(
+    (a) => !q || a.baslik.toLocaleLowerCase("tr-TR").includes(q),
+  );
+  const grubu = (a: T) =>
+    GRUPLAR.find((g) => g.alanlar.includes(a.anahtar))?.ad ?? "Diğer";
+  return GRUPLAR.map((g) => ({
+    ad: g.ad,
+    alanlar: uyan
+      .filter((a) => grubu(a) === g.ad)
+      .sort(
+        (x, y) => g.alanlar.indexOf(x.anahtar) - g.alanlar.indexOf(y.anahtar),
+      ),
+  })).filter((g) => g.alanlar.length);
+}
+
+/** Grup listelerinin üstündeki arama kutusu. */
+function ListeArama({
+  deger,
+  onChange,
+}: {
+  deger: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="mb-2 flex items-center gap-2 rounded-lg border border-zinc-200 px-2.5 py-1.5">
+      <Search className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+      <input
+        autoFocus
+        value={deger}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Alan ara…"
+        className="w-full text-sm outline-none placeholder:text-zinc-400"
+      />
+    </div>
+  );
+}
+
+/**
+ * Filtre eklenince tabloya otomatik eklenen kolonlar: aynı anahtarlı kolon (Akademi Tarihi için
+ * başlangıç ve bitiş). Kolon sonradan kapatılabilir.
+ */
+function filtreKolonlari(anahtar: string): string[] {
+  if (anahtar === "akademi") return ["akademiBaslangic", "akademiBitis"];
+  return KOLONLAR.some((k) => k.anahtar === anahtar) ? [anahtar] : [];
+}
+
+const alanBul = (anahtar: string) =>
+  FILTRE_ALANLARI.find((f) => f.anahtar === anahtar)!;
 
 const kucukHarf = (s: string) => s.toLocaleLowerCase("tr-TR");
 const inputTarihi = (t: string) => (t ? new Date(`${t}T00:00`) : null);
@@ -257,10 +671,17 @@ function bosMu(d: FiltreDegeri | undefined): boolean {
   return !d.bas && !d.bit;
 }
 
-function uyuyorMu(alan: FiltreAlani, a: AdayEgitmen, b: Baglam, d: FiltreDegeri): boolean {
+function uyuyorMu(
+  alan: FiltreAlani,
+  a: AdayEgitmen,
+  b: Baglam,
+  d: FiltreDegeri,
+): boolean {
   switch (alan.tip) {
     case "coklu":
-      return (d as string[]).includes(alan.deger(a, b));
+      return alan.degerler
+        ? alan.degerler(a, b).some((v) => (d as string[]).includes(v))
+        : (d as string[]).includes(alan.deger(a, b));
     case "tarih": {
       const { bas, bit } = d as TarihAraligi;
       return alan.uyar(a, b, inputTarihi(bas), inputTarihi(bit));
@@ -271,7 +692,8 @@ function uyuyorMu(alan: FiltreAlani, a: AdayEgitmen, b: Baglam, d: FiltreDegeri)
 }
 
 function etiketMetni(alan: FiltreAlani, d: FiltreDegeri): string {
-  if (alan.tip === "coklu") return `${alan.baslik}: ${(d as string[]).join(", ")}`;
+  if (alan.tip === "coklu")
+    return `${alan.baslik}: ${(d as string[]).join(", ")}`;
   if (alan.tip === "tarih") {
     const { bas, bit } = d as TarihAraligi;
     return `${alan.baslik}: ${tarihGoster(bas)} – ${tarihGoster(bit)}`;
@@ -280,16 +702,20 @@ function etiketMetni(alan: FiltreAlani, d: FiltreDegeri): string {
 }
 
 function bosDeger(alan: FiltreAlani): FiltreDegeri {
-  return alan.tip === "coklu" ? [] : alan.tip === "tarih" ? { bas: "", bit: "" } : "";
+  return alan.tip === "coklu"
+    ? []
+    : alan.tip === "tarih"
+      ? { bas: "", bit: "" }
+      : "";
 }
 
 /** Tek arama kutusu: ID, ad soyad, TCKN, telefon ve e-posta. */
 function aramayaUyuyor(a: AdayEgitmen, q: string): boolean {
   const rakam = q.replace(/\D/g, "");
   return (
-    kucukHarf(`${a.themisId} ${a.ad} ${a.soyad} ${a.eposta ?? ""} ${a.tcKimlikNo ?? ""}`).includes(
-      kucukHarf(q)
-    ) ||
+    kucukHarf(
+      `${a.themisId} ${a.ad} ${a.soyad} ${a.eposta ?? ""} ${a.tcKimlikNo ?? ""}`,
+    ).includes(kucukHarf(q)) ||
     (rakam.length >= 3 && a.telefon.replace(/\D/g, "").includes(rakam))
   );
 }
@@ -332,33 +758,65 @@ async function exceleAktar(
   kolonlar: Kolon[],
   satirlar: string[][],
   filtreler: string[],
-  dosyaAdi: string
+  dosyaAdi: string,
 ) {
   const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("Rapor", { views: [{ state: "frozen", ySplit: 1 }] });
+  const ws = wb.addWorksheet("Rapor", {
+    views: [{ state: "frozen", ySplit: 1 }],
+  });
   ws.columns = kolonlar.map((k, i) => ({
     header: k.baslik,
     key: k.anahtar,
-    width: Math.min(60, Math.max(k.baslik.length, ...satirlar.map((s) => s[i].length)) + 3),
+    width: Math.min(
+      60,
+      Math.max(k.baslik.length, ...satirlar.map((s) => s[i].length)) + 3,
+    ),
   }));
   satirlar.forEach((s) => ws.addRow(s));
+  // Geri sayım hücreleri sheet'teki gibi: süre doldu kırmızı, 1 ay kaldı sarı.
+  ws.eachRow((row, no) => {
+    if (no === 1) return;
+    row.eachCell((cell) => {
+      const v = String(cell.value ?? "");
+      if (v.startsWith("⛔") || v.startsWith("⚠")) {
+        const kirmizi = v.startsWith("⛔");
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: kirmizi ? "FFF8D0D4" : "FFFFF2CC" },
+        };
+        cell.font = { color: { argb: kirmizi ? "FF9C0006" : "FF7F6000" } };
+      }
+    });
+  });
   const baslik = ws.getRow(1);
   baslik.font = { bold: true, color: { argb: "FFFFFFFF" } };
-  baslik.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF18181B" } };
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: kolonlar.length } };
+  baslik.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF18181B" },
+  };
+  ws.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: kolonlar.length },
+  };
 
   // Raporun hangi filtrelerle alındığı ikinci sayfada saklanır.
   const bilgi = wb.addWorksheet("Filtreler");
   bilgi.columns = [{ header: "Uygulanan filtre", key: "f", width: 80 }];
   bilgi.getRow(1).font = { bold: true };
-  (filtreler.length ? filtreler : ["Filtre yok — tüm kayıtlar"]).forEach((f) => bilgi.addRow([f]));
+  (filtreler.length ? filtreler : ["Filtre yok — tüm kayıtlar"]).forEach((f) =>
+    bilgi.addRow([f]),
+  );
   bilgi.addRow([]);
   bilgi.addRow([`Kayıt sayısı: ${satirlar.length}`]);
 
   const veri = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(
-    new Blob([veri], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+    new Blob([veri], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
   );
   const link = document.createElement("a");
   link.href = url;
@@ -422,10 +880,26 @@ function tarihKisayollari(): { label: string; bas: string; bit: string }[] {
   const y = b.getFullYear();
   const m = b.getMonth();
   return [
-    { label: "Bu ay", bas: iso(new Date(y, m, 1)), bit: iso(new Date(y, m + 1, 0)) },
-    { label: "Geçen ay", bas: iso(new Date(y, m - 1, 1)), bit: iso(new Date(y, m, 0)) },
-    { label: "Son 3 ay", bas: iso(new Date(y, m - 2, 1)), bit: iso(new Date(y, m + 1, 0)) },
-    { label: "Bu yıl", bas: iso(new Date(y, 0, 1)), bit: iso(new Date(y, 11, 31)) },
+    {
+      label: "Bu ay",
+      bas: iso(new Date(y, m, 1)),
+      bit: iso(new Date(y, m + 1, 0)),
+    },
+    {
+      label: "Geçen ay",
+      bas: iso(new Date(y, m - 1, 1)),
+      bit: iso(new Date(y, m, 0)),
+    },
+    {
+      label: "Son 3 ay",
+      bas: iso(new Date(y, m - 2, 1)),
+      bit: iso(new Date(y, m + 1, 0)),
+    },
+    {
+      label: "Bu yıl",
+      bas: iso(new Date(y, 0, 1)),
+      bit: iso(new Date(y, 11, 31)),
+    },
   ];
 }
 
@@ -442,7 +916,9 @@ function DegerEditoru({
   const [ara, setAra] = useState("");
   if (alan.tip === "coklu") {
     const secili = deger as string[];
-    const liste = alan.secenekler.filter((s) => kucukHarf(s).includes(kucukHarf(ara)));
+    const liste = alan.secenekler.filter((s) =>
+      kucukHarf(s).includes(kucukHarf(ara)),
+    );
     return (
       <div className="flex flex-col gap-1">
         {alan.secenekler.length > 8 && (
@@ -461,12 +937,18 @@ function DegerEditoru({
               <button
                 key={s}
                 type="button"
-                onClick={() => onChange(var_ ? secili.filter((x) => x !== s) : [...secili, s])}
+                onClick={() =>
+                  onChange(
+                    var_ ? secili.filter((x) => x !== s) : [...secili, s],
+                  )
+                }
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
               >
                 <span
                   className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                    var_ ? "border-brand bg-brand text-white" : "border-zinc-300"
+                    var_
+                      ? "border-brand bg-brand text-white"
+                      : "border-zinc-300"
                   }`}
                 >
                   {var_ && <Check className="h-3 w-3" strokeWidth={3} />}
@@ -485,7 +967,10 @@ function DegerEditoru({
       <div className="flex flex-col gap-2 p-1">
         <div className="grid grid-cols-2 gap-2">
           {(["bas", "bit"] as const).map((uc) => (
-            <label key={uc} className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+            <label
+              key={uc}
+              className="flex flex-col gap-1 text-xs font-medium text-zinc-500"
+            >
               {uc === "bas" ? "Başlangıç" : "Bitiş"}
               <input
                 type="date"
@@ -508,7 +993,9 @@ function DegerEditoru({
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-zinc-400">Boş bırakılan tarih sınırsız sayılır.</p>
+        <p className="text-[11px] text-zinc-400">
+          Boş bırakılan tarih sınırsız sayılır.
+        </p>
       </div>
     );
   }
@@ -537,16 +1024,23 @@ const ikincilButon =
 export function EsnekRapor() {
   const { adaylar } = useAdaylar();
   const { donemler } = useAkademiDonemleri();
+  const { sinavSonuclari } = useAkademiSinavSonuclari();
   const [arama, setArama] = useState("");
   const [filtreler, setFiltreler] = useState<Record<string, FiltreDegeri>>({});
   // Tüm kolonların sırası; seçili olanlar bu sırayla gösterilir.
   const [kolonSirasi, setKolonSirasi] = useState<string[]>(() => [
     ...VARSAYILAN_KOLONLAR,
-    ...KOLONLAR.map((k) => k.anahtar).filter((k) => !VARSAYILAN_KOLONLAR.includes(k)),
+    ...KOLONLAR.map((k) => k.anahtar).filter(
+      (k) => !VARSAYILAN_KOLONLAR.includes(k),
+    ),
   ]);
-  const [seciliKolonlar, setSeciliKolonlar] = useState<string[]>(VARSAYILAN_KOLONLAR);
+  const [seciliKolonlar, setSeciliKolonlar] =
+    useState<string[]>(VARSAYILAN_KOLONLAR);
   // null: kapalı · "liste": eklenecek alan seçiliyor · diğer: o alanın değeri düzenleniyor.
   const [filtreMenusu, setFiltreMenusu] = useState<string | null>(null);
+  // Filtre ve kolon listelerindeki arama.
+  const [filtreAra, setFiltreAra] = useState("");
+  const [kolonAra, setKolonAra] = useState("");
   const [kolonMenusu, setKolonMenusu] = useState(false);
   const [kayitMenusu, setKayitMenusu] = useState(false);
   const [kaydetMenusu, setKaydetMenusu] = useState(false);
@@ -557,11 +1051,23 @@ export function EsnekRapor() {
   const [indiriliyor, setIndiriliyor] = useState(false);
 
   const baglam = useMemo<Baglam>(
-    () => ({ donemi: (a) => donemler.find((d) => d.id === a.akademiDonemiId) }),
-    [donemler]
+    () => ({
+      donemi: (a) => donemler.find((d) => d.id === a.akademiDonemiId),
+      gxVerebildigi: (a) =>
+        gxYetkinlikleri(
+          a,
+          sinavSonuclari,
+          gxDersleri(VARSAYILAN_SINAV_BASLIKLARI),
+        )
+          .filter((g) => g.karar === "verebilir")
+          .map((g) => g.ders),
+    }),
+    [donemler, sinavSonuclari],
   );
 
-  const aktifFiltreler = FILTRE_ALANLARI.filter((f) => !bosMu(filtreler[f.anahtar]));
+  const aktifFiltreler = FILTRE_ALANLARI.filter(
+    (f) => !bosMu(filtreler[f.anahtar]),
+  );
 
   const sonuc = useMemo(() => {
     const q = arama.trim();
@@ -569,18 +1075,23 @@ export function EsnekRapor() {
       (a) =>
         (!q || aramayaUyuyor(a, q)) &&
         FILTRE_ALANLARI.every(
-          (f) => bosMu(filtreler[f.anahtar]) || uyuyorMu(f, a, baglam, filtreler[f.anahtar])
-        )
+          (f) =>
+            bosMu(filtreler[f.anahtar]) ||
+            uyuyorMu(f, a, baglam, filtreler[f.anahtar]),
+        ),
     );
   }, [adaylar, arama, filtreler, baglam]);
 
   const gorunenKolonlar = kolonSirasi
     .filter((k) => seciliKolonlar.includes(k))
-    .map((k) => KOLONLAR.find((c) => c.anahtar === k)!);
+    .map((k) => KOLONLAR.find((c) => c.anahtar === k))
+    .filter((k): k is Kolon => !!k);
 
   const filtreKapat = () => {
     // Değer seçilmeden kapatılan filtre eklenmemiş sayılır.
-    setFiltreler((prev) => Object.fromEntries(Object.entries(prev).filter(([, d]) => !bosMu(d))));
+    setFiltreler((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([, d]) => !bosMu(d))),
+    );
     setFiltreMenusu(null);
   };
 
@@ -589,9 +1100,13 @@ export function EsnekRapor() {
     ...aktifFiltreler.map((f) => etiketMetni(f, filtreler[f.anahtar])),
   ];
 
-  const acikRaporAdi = acikRapor ? kayitlilar.find((r) => r.id === acikRapor)?.ad : undefined;
+  const acikRaporAdi = acikRapor
+    ? kayitlilar.find((r) => r.id === acikRapor)?.ad
+    : undefined;
   const duzenlenenAlan =
-    filtreMenusu && filtreMenusu !== "liste" ? alanBul(filtreMenusu) : undefined;
+    filtreMenusu && filtreMenusu !== "liste"
+      ? alanBul(filtreMenusu)
+      : undefined;
 
   const indir = async () => {
     setIndiriliyor(true);
@@ -601,7 +1116,7 @@ export function EsnekRapor() {
       gorunenKolonlar,
       sonuc.map((a) => gorunenKolonlar.map((k) => k.deger(a, baglam))),
       filtreEtiketleri,
-      `${acikRaporAdi ? acikRaporAdi.replace(/[^\p{L}\p{N}]+/gu, "_") : "Themis_Egitmen_Raporu"}_${tarih}.xlsx`
+      `${acikRaporAdi ? acikRaporAdi.replace(/[^\p{L}\p{N}]+/gu, "_") : "Themis_Egitmen_Raporu"}_${tarih}.xlsx`,
     );
     setIndiriliyor(false);
   };
@@ -618,7 +1133,9 @@ export function EsnekRapor() {
       filtreler,
       kolonlar: kolonSirasi.filter((k) => seciliKolonlar.includes(k)),
     };
-    const yeni = ayniAd ? mevcut.map((r) => (r.id === ayniAd.id ? rapor : r)) : [...mevcut, rapor];
+    const yeni = ayniAd
+      ? mevcut.map((r) => (r.id === ayniAd.id ? rapor : r))
+      : [...mevcut, rapor];
     kayitlariYaz(yeni);
     setKayitlilar(yeni);
     setAcikRapor(rapor.id);
@@ -630,7 +1147,7 @@ export function EsnekRapor() {
     setFiltreler(r.filtreler);
     setSeciliKolonlar(r.kolonlar);
     setKolonSirasi([
-      ...r.kolonlar,
+      ...r.kolonlar.filter((k) => KOLONLAR.some((c) => c.anahtar === k)),
       ...KOLONLAR.map((k) => k.anahtar).filter((k) => !r.kolonlar.includes(k)),
     ]);
     setAcikRapor(r.id);
@@ -661,7 +1178,10 @@ export function EsnekRapor() {
           <p className="mt-1 text-sm text-zinc-500">
             {acikRaporAdi ? (
               <>
-                Kayıtlı rapor: <span className="font-medium text-zinc-800">{acikRaporAdi}</span>
+                Kayıtlı rapor:{" "}
+                <span className="font-medium text-zinc-800">
+                  {acikRaporAdi}
+                </span>
               </>
             ) : (
               "Filtre ekleyin, kolonları seçin ve sonucu Excel olarak indirin."
@@ -688,19 +1208,25 @@ export function EsnekRapor() {
         >
           {kayitlilar.length === 0 ? (
             <p className="px-2 py-3 text-sm text-zinc-400">
-              Henüz kayıtlı rapor yok. Filtre ve kolonları ayarlayıp &quot;Raporu kaydet&quot;e
-              basın.
+              Henüz kayıtlı rapor yok. Filtre ve kolonları ayarlayıp
+              &quot;Raporu kaydet&quot;e basın.
             </p>
           ) : (
             kayitlilar.map((r) => (
-              <div key={r.id} className="flex items-center gap-1 rounded-lg hover:bg-zinc-50">
+              <div
+                key={r.id}
+                className="flex items-center gap-1 rounded-lg hover:bg-zinc-50"
+              >
                 <button
                   onClick={() => raporAc(r)}
                   className="min-w-0 flex-1 px-2 py-1.5 text-left text-sm"
                 >
-                  <div className="truncate font-medium text-zinc-800">{r.ad}</div>
+                  <div className="truncate font-medium text-zinc-800">
+                    {r.ad}
+                  </div>
                   <div className="text-xs text-zinc-400">
-                    {Object.keys(r.filtreler).length} filtre · {r.kolonlar.length} kolon
+                    {Object.keys(r.filtreler).length} filtre ·{" "}
+                    {r.kolonlar.length} kolon
                   </div>
                 </button>
                 <button
@@ -738,6 +1264,10 @@ export function EsnekRapor() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Filtreler kimlerin listeleneceğini belirler; kolonlar (aşağıda) hangi bilgilerin görüneceğini. */}
+            <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Filtreler
+            </span>
             {aktifFiltreler.map((f) => (
               <AcilirPanel
                 key={f.anahtar}
@@ -747,7 +1277,11 @@ export function EsnekRapor() {
                 tetik={
                   <span className="flex max-w-md items-center rounded-full border border-zinc-200 bg-zinc-50 text-xs font-medium text-zinc-700">
                     <button
-                      onClick={() => setFiltreMenusu(filtreMenusu === f.anahtar ? null : f.anahtar)}
+                      onClick={() =>
+                        setFiltreMenusu(
+                          filtreMenusu === f.anahtar ? null : f.anahtar,
+                        )
+                      }
                       className="truncate py-1.5 pl-3 pr-1 hover:text-zinc-900"
                     >
                       {etiketMetni(f, filtreler[f.anahtar])}
@@ -768,11 +1302,15 @@ export function EsnekRapor() {
                   </span>
                 }
               >
-                <div className="mb-1 px-1 text-xs font-semibold text-zinc-500">{f.baslik}</div>
+                <div className="mb-1 px-1 text-xs font-semibold text-zinc-500">
+                  {f.baslik}
+                </div>
                 <DegerEditoru
                   alan={f}
                   deger={filtreler[f.anahtar]}
-                  onChange={(d) => setFiltreler((prev) => ({ ...prev, [f.anahtar]: d }))}
+                  onChange={(d) =>
+                    setFiltreler((prev) => ({ ...prev, [f.anahtar]: d }))
+                  }
                 />
               </AcilirPanel>
             ))}
@@ -786,10 +1324,12 @@ export function EsnekRapor() {
               genislik={duzenlenenAlan?.tip === "tarih" ? "w-80" : "w-72"}
               tetik={
                 <button
-                  onClick={() => (filtreMenusu ? filtreKapat() : setFiltreMenusu("liste"))}
-                  className="flex items-center gap-1 rounded-full border border-dashed border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:border-zinc-400 hover:bg-zinc-50"
+                  onClick={() =>
+                    filtreMenusu ? filtreKapat() : setFiltreMenusu("liste")
+                  }
+                  className="flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/5 px-4 py-2 text-sm font-semibold text-brand hover:bg-brand/10"
                 >
-                  <Plus className="h-3.5 w-3.5" />
+                  <ListFilter className="h-4 w-4" />
                   Filtre ekle
                 </button>
               }
@@ -801,33 +1341,63 @@ export function EsnekRapor() {
                   </div>
                   <DegerEditoru
                     alan={duzenlenenAlan}
-                    deger={filtreler[duzenlenenAlan.anahtar] ?? bosDeger(duzenlenenAlan)}
+                    deger={
+                      filtreler[duzenlenenAlan.anahtar] ??
+                      bosDeger(duzenlenenAlan)
+                    }
                     onChange={(d) =>
-                      setFiltreler((prev) => ({ ...prev, [duzenlenenAlan.anahtar]: d }))
+                      setFiltreler((prev) => ({
+                        ...prev,
+                        [duzenlenenAlan.anahtar]: d,
+                      }))
                     }
                   />
                 </>
               ) : (
-                <div className="max-h-80 overflow-y-auto">
-                  {FILTRE_ALANLARI.filter((f) => bosMu(filtreler[f.anahtar])).map((f) => (
-                    <button
-                      key={f.anahtar}
-                      onClick={() => {
-                        setFiltreler((prev) => ({ ...prev, [f.anahtar]: bosDeger(f) }));
-                        setFiltreMenusu(f.anahtar);
-                      }}
-                      className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
-                    >
-                      {f.baslik}
-                      <span className="text-[11px] text-zinc-400">
-                        {f.tip === "tarih"
-                          ? "Tarih aralığı"
-                          : f.tip === "metin"
-                            ? "Metin"
-                            : "Seçim"}
-                      </span>
-                    </button>
-                  ))}
+                <div>
+                  <ListeArama deger={filtreAra} onChange={setFiltreAra} />
+                  <div className="max-h-80 overflow-y-auto">
+                    {grupla(
+                      FILTRE_ALANLARI.filter((f) =>
+                        bosMu(filtreler[f.anahtar]),
+                      ),
+                      filtreAra,
+                    ).map((g) => (
+                      <div key={g.ad} className="mb-1">
+                        <div className="sticky top-0 bg-white px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                          {g.ad}
+                        </div>
+                        {g.alanlar.map((f) => (
+                          <button
+                            key={f.anahtar}
+                            onClick={() => {
+                              setFiltreler((prev) => ({
+                                ...prev,
+                                [f.anahtar]: bosDeger(f),
+                              }));
+                              // Filtrelenen alanın kolonu da tabloya ve Excel'e eklenir.
+                              const eklenecek = filtreKolonlari(f.anahtar);
+                              setSeciliKolonlar((prev) => [
+                                ...prev,
+                                ...eklenecek.filter((k) => !prev.includes(k)),
+                              ]);
+                              setFiltreMenusu(f.anahtar);
+                            }}
+                            className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                          >
+                            {f.baslik}
+                            <span className="text-[11px] text-zinc-400">
+                              {f.tip === "tarih"
+                                ? "Tarih aralığı"
+                                : f.tip === "metin"
+                                  ? "Metin"
+                                  : "Seçim"}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </AcilirPanel>
@@ -851,12 +1421,16 @@ export function EsnekRapor() {
             {filtreEtiketleri.length > 0 ? (
               <>
                 {adaylar.length.toLocaleString("tr-TR")} kişi içinden{" "}
-                <strong className="text-zinc-900">{sonuc.length.toLocaleString("tr-TR")}</strong>{" "}
+                <strong className="text-zinc-900">
+                  {sonuc.length.toLocaleString("tr-TR")}
+                </strong>{" "}
                 kişi
               </>
             ) : (
               <>
-                <strong className="text-zinc-900">{adaylar.length.toLocaleString("tr-TR")}</strong>{" "}
+                <strong className="text-zinc-900">
+                  {adaylar.length.toLocaleString("tr-TR")}
+                </strong>{" "}
                 kişi
               </>
             )}
@@ -867,19 +1441,28 @@ export function EsnekRapor() {
               onKapat={() => setKolonMenusu(false)}
               sag
               tetik={
-                <button onClick={() => setKolonMenusu((a) => !a)} className={ikincilButon}>
+                <button
+                  onClick={() => setKolonMenusu((a) => !a)}
+                  className={ikincilButon}
+                >
                   <Columns3 className="h-4 w-4" />
-                  Kolonlar
-                  <span className="text-xs text-zinc-400">{gorunenKolonlar.length}</span>
+                  Tablo kolonları
+                  <span className="text-xs text-zinc-400">
+                    {gorunenKolonlar.length}
+                  </span>
                   <ChevronDown className="h-4 w-4 text-zinc-400" />
                 </button>
               }
             >
               <div className="mb-1 flex items-center justify-between px-1 text-xs">
-                <span className="font-semibold text-zinc-500">Sürükleyerek sıralayın</span>
+                <span className="font-semibold text-zinc-500">
+                  Sürükleyerek sıralayın
+                </span>
                 <span className="flex gap-2 font-medium">
                   <button
-                    onClick={() => setSeciliKolonlar(KOLONLAR.map((k) => k.anahtar))}
+                    onClick={() =>
+                      setSeciliKolonlar(KOLONLAR.map((k) => k.anahtar))
+                    }
                     className="text-brand hover:underline"
                   >
                     Tümü
@@ -892,45 +1475,71 @@ export function EsnekRapor() {
                   </button>
                 </span>
               </div>
-              <div className="max-h-96 overflow-y-auto">
-                {kolonSirasi.map((anahtar) => {
-                  const k = KOLONLAR.find((c) => c.anahtar === anahtar)!;
-                  const secili = seciliKolonlar.includes(anahtar);
-                  return (
-                    <div
-                      key={anahtar}
-                      draggable
-                      onDragStart={() => setSurukle(anahtar)}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        if (surukle) kolonTasi(surukle, anahtar);
-                      }}
-                      onDragEnd={() => setSurukle(null)}
-                      className={`flex items-center gap-1 rounded-lg px-1 hover:bg-zinc-50 ${
-                        surukle === anahtar ? "bg-zinc-100" : ""
-                      }`}
-                    >
-                      <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-zinc-300" />
-                      <button
-                        onClick={() =>
-                          setSeciliKolonlar((prev) =>
-                            secili ? prev.filter((x) => x !== anahtar) : [...prev, anahtar]
-                          )
-                        }
-                        className="flex flex-1 items-center gap-2 py-1.5 text-left text-sm text-zinc-700"
+              <div className="max-h-[28rem] overflow-y-auto">
+                {/* Seçili kolonlar: sürükleyerek sıralanır. */}
+                {kolonSirasi
+                  .filter((anahtar) => seciliKolonlar.includes(anahtar))
+                  .map((anahtar) => {
+                    const k = KOLONLAR.find((c) => c.anahtar === anahtar);
+                    if (!k) return null;
+                    return (
+                      <div
+                        key={anahtar}
+                        draggable
+                        onDragStart={() => setSurukle(anahtar)}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (surukle) kolonTasi(surukle, anahtar);
+                        }}
+                        onDragEnd={() => setSurukle(null)}
+                        className={`flex items-center gap-1 rounded-lg px-1 hover:bg-zinc-50 ${
+                          surukle === anahtar ? "bg-zinc-100" : ""
+                        }`}
                       >
-                        <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                            secili ? "border-brand bg-brand text-white" : "border-zinc-300"
-                          }`}
+                        <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-zinc-300" />
+                        <button
+                          onClick={() =>
+                            setSeciliKolonlar((prev) =>
+                              prev.filter((x) => x !== anahtar),
+                            )
+                          }
+                          className="flex flex-1 items-center gap-2 py-1.5 text-left text-sm text-zinc-700"
                         >
-                          {secili && <Check className="h-3 w-3" strokeWidth={3} />}
-                        </span>
-                        {k.baslik}
-                      </button>
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-brand bg-brand text-white">
+                            <Check className="h-3 w-3" strokeWidth={3} />
+                          </span>
+                          {k.baslik}
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                {/* Eklenebilir kolonlar: gruplu ve aranabilir. */}
+                <div className="mt-2 border-t border-zinc-100 pt-2">
+                  <ListeArama deger={kolonAra} onChange={setKolonAra} />
+                  {grupla(
+                    KOLONLAR.filter((k) => !seciliKolonlar.includes(k.anahtar)),
+                    kolonAra,
+                  ).map((g) => (
+                    <div key={g.ad} className="mb-1">
+                      <div className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                        {g.ad}
+                      </div>
+                      {g.alanlar.map((k) => (
+                        <button
+                          key={k.anahtar}
+                          onClick={() =>
+                            setSeciliKolonlar((prev) => [...prev, k.anahtar])
+                          }
+                          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                        >
+                          <span className="h-4 w-4 shrink-0 rounded border border-zinc-300" />
+                          {k.baslik}
+                        </button>
+                      ))}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             </AcilirPanel>
 
@@ -958,7 +1567,10 @@ export function EsnekRapor() {
                 }}
                 className="flex flex-col gap-2 p-1"
               >
-                <label className="text-xs font-semibold text-zinc-500" htmlFor="rapor-adi">
+                <label
+                  className="text-xs font-semibold text-zinc-500"
+                  htmlFor="rapor-adi"
+                >
                   Rapor adı
                 </label>
                 <input
@@ -970,7 +1582,8 @@ export function EsnekRapor() {
                   className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-sm outline-none focus:border-brand"
                 />
                 <p className="text-[11px] text-zinc-400">
-                  Arama, filtreler ve kolonlar kaydedilir. Aynı adla kaydetmek raporu günceller.
+                  Arama, filtreler ve kolonlar kaydedilir. Aynı adla kaydetmek
+                  raporu günceller.
                 </p>
                 <button
                   type="submit"
@@ -984,7 +1597,11 @@ export function EsnekRapor() {
 
             <button
               onClick={indir}
-              disabled={indiriliyor || gorunenKolonlar.length === 0 || sonuc.length === 0}
+              disabled={
+                indiriliyor ||
+                gorunenKolonlar.length === 0 ||
+                sonuc.length === 0
+              }
               className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Download className="h-4 w-4" />
@@ -1003,7 +1620,10 @@ export function EsnekRapor() {
               <thead>
                 <tr className="sticky top-0 z-10 border-b border-zinc-100 bg-white text-xs font-medium text-zinc-400">
                   {gorunenKolonlar.map((k) => (
-                    <th key={k.anahtar} className="whitespace-nowrap px-4 py-2.5">
+                    <th
+                      key={k.anahtar}
+                      className="whitespace-nowrap px-4 py-2.5"
+                    >
                       {k.baslik}
                     </th>
                   ))}
@@ -1018,7 +1638,10 @@ export function EsnekRapor() {
                     {gorunenKolonlar.map((k) => {
                       const h = k.deger(a, baglam);
                       return (
-                        <td key={k.anahtar} className="whitespace-nowrap px-4 py-2.5 text-zinc-700">
+                        <td
+                          key={k.anahtar}
+                          className="whitespace-nowrap px-4 py-2.5 text-zinc-700"
+                        >
                           {h || <span className="text-zinc-300">—</span>}
                         </td>
                       );

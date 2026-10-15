@@ -82,7 +82,8 @@ const KADIN_ADLARI = new Set([
   "Aylin",
   "Duygu",
 ]);
-const ornekCinsiyet = (ad: string): "Kadın" | "Erkek" => (KADIN_ADLARI.has(ad) ? "Kadın" : "Erkek");
+const ornekCinsiyet = (ad: string): "Kadın" | "Erkek" =>
+  KADIN_ADLARI.has(ad) ? "Kadın" : "Erkek";
 
 export const SOYADLAR = [
   "Yıldız",
@@ -141,9 +142,16 @@ const IS_DENEYIMI_POOL = [
 const KM_ISIMLERI = ["Mert Aydın", "Barış Ç.", "Aslı Kurt"];
 const IK_ISIMLERI = ["Elif Su"];
 const BEDENLER = ["XS", "S", "M", "L", "XL", "XXL"];
-const ISTIHDAM_TIPLERI: IstihdamTipi[] = ["Tam Zamanlı", "Yarı Zamanlı", "Kiracı"];
+const ISTIHDAM_TIPLERI: IstihdamTipi[] = [
+  "Tam Zamanlı",
+  "Yarı Zamanlı",
+  "Kiracı",
+];
 const OZEL_BRANSLAR: SozlesmeTipi[] = ["GX", "Pilates", "Havuz"];
-const KULUP_DEGISIM_NEDENLERI = ["Kulüp değişikliği", "Yeni görev yeri ataması"];
+const KULUP_DEGISIM_NEDENLERI = [
+  "Kulüp değişikliği",
+  "Yeni görev yeri ataması",
+];
 
 function turkceyiSadelestir(deger: string): string {
   return deger
@@ -173,7 +181,7 @@ function sozlesmeGecmisiUret(
   i: number,
   kulup: string,
   istihdamTipi: IstihdamTipi,
-  guncelBaslangic: string
+  guncelBaslangic: string,
 ): SozlesmeKaydi[] {
   const kayitlar: SozlesmeKaydi[] = [];
   const oncekiKulup = KULUPLER[(i + 5) % KULUPLER.length];
@@ -222,7 +230,7 @@ export function sentetikEgitmenlerUret(
   baslangicId: number,
   adet: number,
   // İkinci bir grup üretilirken isim ve kulüplerin ilk grupla çakışmaması için kaydırma.
-  kaydirma = 0
+  kaydirma = 0,
 ): AdayEgitmen[] {
   const sonuc: AdayEgitmen[] = [];
 
@@ -233,8 +241,11 @@ export function sentetikEgitmenlerUret(
     const kulup = KULUPLER[(i + kaydirma) % KULUPLER.length];
     const kmMi = i % 2 === 0;
     const mulakatiYapanRol: MulakatRolu = kmMi ? "Kulüp Müdürü" : "İK";
-    const mulakatiYapan = kmMi ? KM_ISIMLERI[i % KM_ISIMLERI.length] : IK_ISIMLERI[0];
-    const istihdamTipi: IstihdamTipi = ISTIHDAM_TIPLERI[i % ISTIHDAM_TIPLERI.length];
+    const mulakatiYapan = kmMi
+      ? KM_ISIMLERI[i % KM_ISIMLERI.length]
+      : IK_ISIMLERI[0];
+    const istihdamTipi: IstihdamTipi =
+      ISTIHDAM_TIPLERI[i % ISTIHDAM_TIPLERI.length];
     const sozlesmeTipi: SozlesmeTipi | undefined = sentetikOzelBransMi(i)
       ? OZEL_BRANSLAR[Math.floor(i / 9) % OZEL_BRANSLAR.length]
       : undefined;
@@ -244,7 +255,9 @@ export function sentetikEgitmenlerUret(
     const eposta = `${turkceyiSadelestir(ad)}.${turkceyiSadelestir(soyad)}${id}@gmail.com`;
     // Her 14 sentetik eğitmenden biri işten çıkmış (Pasif Eğitmen) olarak üretilir.
     const pasifMi = i % 14 === 13;
-    const cikisTarihi = pasifMi ? `${String(5 + (i % 20)).padStart(2, "0")}.09.2026` : undefined;
+    const cikisTarihi = pasifMi
+      ? `${String(5 + (i % 20)).padStart(2, "0")}.09.2026`
+      : undefined;
     const fesihSekli = pasifMi
       ? FESIH_SEKLI_SECENEKLERI[i % FESIH_SEKLI_SECENEKLERI.length]
       : undefined;
@@ -283,8 +296,16 @@ export function sentetikEgitmenlerUret(
       ilkBelgeSeti,
       ikinciBelgeSeti: [
         { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: basvuruTarihi },
-        { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: basvuruTarihi },
-        { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: basvuruTarihi },
+        {
+          ad: "Öğrenim Durumu Belgesi",
+          durum: "yuklendi",
+          tarih: basvuruTarihi,
+        },
+        {
+          ad: "Fiziki Oryantasyon Formu",
+          durum: "yuklendi",
+          tarih: basvuruTarihi,
+        },
       ],
       ikinciBelgeSetiOnaylandi: kmMi ? true : undefined,
       ayakkabiNo,
@@ -292,11 +313,25 @@ export function sentetikEgitmenlerUret(
       // Akademi Eğitmeni statüsüne geçmek Vergi Levhası'nın İK tarafından onaylanmış olmasını
       // gerektirir (bkz. AkademiEgitimineDavet); bu yüzden "egitmen" olan her sentetik kayıtta
       // bu belge zaten yüklenmiş/onaylanmış kabul edilir.
-      vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: basvuruTarihi },
-      sozlesmeGecmisi: sozlesmeGecmisiUret(i, kulup, istihdamTipi, basvuruTarihi).map((k) =>
+      vergiLevhasi: {
+        ad: "Vergi Levhası",
+        durum: "yuklendi",
+        tarih: basvuruTarihi,
+      },
+      sozlesmeGecmisi: sozlesmeGecmisiUret(
+        i,
+        kulup,
+        istihdamTipi,
+        basvuruTarihi,
+      ).map((k) =>
         pasifMi && k.durum === "Devam Ediyor"
-          ? { ...k, durum: "Sona Erdi", bitisTarihi: cikisTarihi, bitisNedeni: fesihSekli }
-          : k
+          ? {
+              ...k,
+              durum: "Sona Erdi",
+              bitisTarihi: cikisTarihi,
+              bitisNedeni: fesihSekli,
+            }
+          : k,
       ),
       aksiyonGecmisi: [
         {
@@ -332,7 +367,7 @@ export function sentetikEgitmenlerUret(
 export function mulakatBekleyenAdaylarUret(
   baslangicId: number,
   adet: number,
-  kaydirma = 0
+  kaydirma = 0,
 ): AdayEgitmen[] {
   // Geçmiş (sonucu girilmemiş) ve önümüzdeki iki haftaya yayılmış mülakat günleri.
   const tarihler = [
@@ -349,7 +384,9 @@ export function mulakatBekleyenAdaylarUret(
     const soyad = SOYADLAR[(i * 3 + 17 + kaydirma * 2) % SOYADLAR.length];
     const kmMi = i % 2 === 0;
     const mulakatiYapanRol: MulakatRolu = kmMi ? "Kulüp Müdürü" : "İK";
-    const mulakatiYapan = kmMi ? KM_ISIMLERI[i % KM_ISIMLERI.length] : IK_ISIMLERI[0];
+    const mulakatiYapan = kmMi
+      ? KM_ISIMLERI[i % KM_ISIMLERI.length]
+      : IK_ISIMLERI[0];
     const basvuruTarihi = `${String(10 + i).padStart(2, "0")}.09.2026`;
     return {
       id,
@@ -372,13 +409,27 @@ export function mulakatBekleyenAdaylarUret(
         { ad: "Mülakat Formu", durum: "yuklendi", tarih: basvuruTarihi },
         { ad: "Aday CV'si", durum: "yuklendi", tarih: basvuruTarihi },
         ...(kmMi
-          ? [{ ad: "Bölge Müdürü Onayı", durum: "yuklendi" as const, tarih: basvuruTarihi }]
+          ? [
+              {
+                ad: "Bölge Müdürü Onayı",
+                durum: "yuklendi" as const,
+                tarih: basvuruTarihi,
+              },
+            ]
           : []),
       ],
       ikinciBelgeSeti: [
         { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: basvuruTarihi },
-        { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: basvuruTarihi },
-        { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: basvuruTarihi },
+        {
+          ad: "Öğrenim Durumu Belgesi",
+          durum: "yuklendi",
+          tarih: basvuruTarihi,
+        },
+        {
+          ad: "Fiziki Oryantasyon Formu",
+          durum: "yuklendi",
+          tarih: basvuruTarihi,
+        },
       ],
       ikinciBelgeSetiOnaylandi: true,
       dijitalOryantasyonTamamlandi: true,
@@ -437,124 +488,145 @@ const ORNEK_ASAMALAR: OrnekAsama[] = [
  * Aday sürecinin farklı adımlarındaki örnek adaylar (birinci / ikinci belge seti, İK onayı,
  * mülakat planlanacak, mülakata katılmadı, olumsuz, yeniden değerlendirilebilir).
  */
-export function adaySureciOrnekleriUret(baslangicId: number, kaydirma = 0): AdayEgitmen[] {
-  return mulakatBekleyenAdaylarUret(baslangicId, ORNEK_ASAMALAR.length, kaydirma).map(
-    (temel, i) => {
-      const asama = ORNEK_ASAMALAR[i];
-      const ad = ADLAR[(i * 7 + 3 + kaydirma) % ADLAR.length];
-      const soyad = SOYADLAR[(i * 11 + 5 + kaydirma) % SOYADLAR.length];
-      const eklenme = temel.aksiyonGecmisi[0];
-      const tarih = `${String(15 + (i % 10)).padStart(2, "0")}.09.2026`;
-      const a: AdayEgitmen = {
-        ...temel,
-        ad,
-        soyad,
-        cinsiyet: ornekCinsiyet(ad),
-        eposta: `${turkceyiSadelestir(ad)}.${turkceyiSadelestir(soyad)}${temel.id}@gmail.com`,
-        kulup: KULUPLER[(i * 5 + 1 + kaydirma) % KULUPLER.length],
-        mulakatPlanlananTarihi: undefined,
-        mulakatPlanlananSaat: undefined,
-        mulakatPlanlayanKisi: undefined,
-        mulakatPlanlamaTarihi: undefined,
-        aksiyonGecmisi: [eklenme],
-      };
-      const yuklenmedi = (b: Belge): Belge => ({ ad: b.ad, durum: "yuklenmedi" });
+export function adaySureciOrnekleriUret(
+  baslangicId: number,
+  kaydirma = 0,
+): AdayEgitmen[] {
+  return mulakatBekleyenAdaylarUret(
+    baslangicId,
+    ORNEK_ASAMALAR.length,
+    kaydirma,
+  ).map((temel, i) => {
+    const asama = ORNEK_ASAMALAR[i];
+    const ad = ADLAR[(i * 7 + 3 + kaydirma) % ADLAR.length];
+    const soyad = SOYADLAR[(i * 11 + 5 + kaydirma) % SOYADLAR.length];
+    const eklenme = temel.aksiyonGecmisi[0];
+    const tarih = `${String(15 + (i % 10)).padStart(2, "0")}.09.2026`;
+    const a: AdayEgitmen = {
+      ...temel,
+      ad,
+      soyad,
+      cinsiyet: ornekCinsiyet(ad),
+      eposta: `${turkceyiSadelestir(ad)}.${turkceyiSadelestir(soyad)}${temel.id}@gmail.com`,
+      kulup: KULUPLER[(i * 5 + 1 + kaydirma) % KULUPLER.length],
+      mulakatPlanlananTarihi: undefined,
+      mulakatPlanlananSaat: undefined,
+      mulakatPlanlayanKisi: undefined,
+      mulakatPlanlamaTarihi: undefined,
+      aksiyonGecmisi: [eklenme],
+    };
+    const yuklenmedi = (b: Belge): Belge => ({ ad: b.ad, durum: "yuklenmedi" });
 
-      switch (asama) {
-        case "ilk_belge":
-          return {
-            ...a,
-            surecDurumu: "ilk_belge_seti_bekleniyor",
-            ilkBelgeSeti: a.ilkBelgeSeti.map((b, j) => (j === 0 ? b : yuklenmedi(b))),
-            ikinciBelgeSeti: a.ikinciBelgeSeti.map(yuklenmedi),
-            ikinciBelgeSetiOnaylandi: false,
-            dijitalOryantasyonTamamlandi: false,
-          };
-        case "ikinci_belge":
-          return {
-            ...a,
-            surecDurumu: "ikinci_belge_seti_bekleniyor",
-            ikinciBelgeSeti: a.ikinciBelgeSeti.map((b, j) => (j === 0 ? b : yuklenmedi(b))),
-            ikinciBelgeSetiOnaylandi: false,
-            dijitalOryantasyonTamamlandi: false,
-          };
-        case "ik_onayi":
-          return {
-            ...a,
-            surecDurumu: "ik_onayi_bekliyor",
-            ikinciBelgeSetiOnaylandi: false,
-            aksiyonGecmisi: [
-              eklenme,
-              { tarih, aksiyon: "İkinci belge seti İK onayına gönderildi", yapan: eklenme.yapan },
-            ],
-          };
-        case "olumlu":
-        case "davet_onay":
-          // Belge, mülakat ve (davet onayında) davet bilgileri veri tutarlılığı adımında tamamlanır.
-          return {
-            ...a,
-            surecDurumu:
-              asama === "olumlu" ? "akademi_egitimine_hazir" : "akademi_daveti_onayi_bekliyor",
-            gorusmeSonucu: "Olumlu",
-          };
-        case "planlanacak":
-          return {
-            ...a,
-            aksiyonGecmisi: [
-              eklenme,
-              { tarih, aksiyon: "İkinci belge seti onaylandı", yapan: `${IK_ISIMLERI[0]} (İK)` },
-            ],
-          };
-        default: {
-          // Mülakatı yapılmış adaylar: planlama bilgisi korunur, sonuç girilir.
-          const katilmadi = asama === "katilmadi";
-          const kriterler = {
-            kisiselOzellikler: 1,
-            fizikselGorunum: 0,
-            tecrube: 1,
-            egitimSertifika: 0,
-            egzersizBilgisi: 0,
-            tecrubeyiAktarabilme: 0,
-          } as const;
-          const aciklama = katilmadi ? undefined : "Teknik bilgi ve egzersiz uygulaması yetersiz.";
-          return {
-            ...a,
-            mulakatPlanlananTarihi: "2026-09-29",
-            mulakatPlanlananSaat: "11:00",
-            mulakatPlanlayanKisi: `${IK_ISIMLERI[0]} (İK)`,
-            mulakatPlanlamaTarihi: "22.09.2026",
-            surecDurumu: katilmadi
-              ? "mulakata_katilmadi"
-              : asama === "yeniden"
-                ? "ileride_degerlendirilebilir"
-                : "reddedildi",
-            gorusmeSonucu: katilmadi ? "Katılmadı" : "Olumsuz",
-            gorusmeSonucuTarihi: "29.09.2026",
-            olumsuzOlmaNedeni: aciklama,
-            mulakatDegerlendirmesi: {
-              katilmadi,
-              kriterler: katilmadi ? {} : kriterler,
-              aciklama,
-              altiAySonraBasvurabilir: asama === "yeniden",
-              giren: `${IK_ISIMLERI[0]} (İK)`,
-              tarih: "29.09.2026",
+    switch (asama) {
+      case "ilk_belge":
+        return {
+          ...a,
+          surecDurumu: "ilk_belge_seti_bekleniyor",
+          ilkBelgeSeti: a.ilkBelgeSeti.map((b, j) =>
+            j === 0 ? b : yuklenmedi(b),
+          ),
+          ikinciBelgeSeti: a.ikinciBelgeSeti.map(yuklenmedi),
+          ikinciBelgeSetiOnaylandi: false,
+          dijitalOryantasyonTamamlandi: false,
+        };
+      case "ikinci_belge":
+        return {
+          ...a,
+          surecDurumu: "ikinci_belge_seti_bekleniyor",
+          ikinciBelgeSeti: a.ikinciBelgeSeti.map((b, j) =>
+            j === 0 ? b : yuklenmedi(b),
+          ),
+          ikinciBelgeSetiOnaylandi: false,
+          dijitalOryantasyonTamamlandi: false,
+        };
+      case "ik_onayi":
+        return {
+          ...a,
+          surecDurumu: "ik_onayi_bekliyor",
+          ikinciBelgeSetiOnaylandi: false,
+          aksiyonGecmisi: [
+            eklenme,
+            {
+              tarih,
+              aksiyon: "İkinci belge seti İK onayına gönderildi",
+              yapan: eklenme.yapan,
             },
-            aksiyonGecmisi: [
-              eklenme,
-              {
-                tarih: "29.09.2026",
-                aksiyon: katilmadi
-                  ? "Akademi mülakatına katılmadı olarak işaretlendi"
-                  : "Akademi mülakatı sonucu Olumsuz (2/6) olarak girildi",
-                yapan: `${IK_ISIMLERI[0]} (İK)`,
-                detay: aciklama,
-              },
-            ],
-          };
-        }
+          ],
+        };
+      case "olumlu":
+      case "davet_onay":
+        // Belge, mülakat ve (davet onayında) davet bilgileri veri tutarlılığı adımında tamamlanır.
+        return {
+          ...a,
+          surecDurumu:
+            asama === "olumlu"
+              ? "akademi_egitimine_hazir"
+              : "akademi_daveti_onayi_bekliyor",
+          gorusmeSonucu: "Olumlu",
+        };
+      case "planlanacak":
+        return {
+          ...a,
+          aksiyonGecmisi: [
+            eklenme,
+            {
+              tarih,
+              aksiyon: "İkinci belge seti onaylandı",
+              yapan: `${IK_ISIMLERI[0]} (İK)`,
+            },
+          ],
+        };
+      default: {
+        // Mülakatı yapılmış adaylar: planlama bilgisi korunur, sonuç girilir.
+        const katilmadi = asama === "katilmadi";
+        const kriterler = {
+          kisiselOzellikler: 1,
+          fizikselGorunum: 0,
+          tecrube: 1,
+          egitimSertifika: 0,
+          egzersizBilgisi: 0,
+          tecrubeyiAktarabilme: 0,
+        } as const;
+        const aciklama = katilmadi
+          ? undefined
+          : "Teknik bilgi ve egzersiz uygulaması yetersiz.";
+        return {
+          ...a,
+          mulakatPlanlananTarihi: "2026-09-29",
+          mulakatPlanlananSaat: "11:00",
+          mulakatPlanlayanKisi: `${IK_ISIMLERI[0]} (İK)`,
+          mulakatPlanlamaTarihi: "22.09.2026",
+          surecDurumu: katilmadi
+            ? "mulakata_katilmadi"
+            : asama === "yeniden"
+              ? "ileride_degerlendirilebilir"
+              : "reddedildi",
+          gorusmeSonucu: katilmadi ? "Katılmadı" : "Olumsuz",
+          gorusmeSonucuTarihi: "29.09.2026",
+          olumsuzOlmaNedeni: aciklama,
+          mulakatDegerlendirmesi: {
+            katilmadi,
+            kriterler: katilmadi ? {} : kriterler,
+            aciklama,
+            altiAySonraBasvurabilir: asama === "yeniden",
+            giren: `${IK_ISIMLERI[0]} (İK)`,
+            tarih: "29.09.2026",
+          },
+          aksiyonGecmisi: [
+            eklenme,
+            {
+              tarih: "29.09.2026",
+              aksiyon: katilmadi
+                ? "Akademi mülakatına katılmadı olarak işaretlendi"
+                : "Akademi mülakatı sonucu Olumsuz (2/6) olarak girildi",
+              yapan: `${IK_ISIMLERI[0]} (İK)`,
+              detay: aciklama,
+            },
+          ],
+        };
       }
     }
-  );
+  });
 }
 
 /**
@@ -565,8 +637,13 @@ export function adaySureciOrnekleriUret(baslangicId: number, kaydirma = 0): Aday
 export function akademiKatilimcilariUret(
   baslangicId: number,
   adet: number,
-  akademi: { id: string; ad: string; tip: AkademiTipi; baslangicTarihi: string },
-  gelmeyenSiralari: number[] = []
+  akademi: {
+    id: string;
+    ad: string;
+    tip: AkademiTipi;
+    baslangicTarihi: string;
+  },
+  gelmeyenSiralari: number[] = [],
 ): AdayEgitmen[] {
   return Array.from({ length: adet }, (_, i) => {
     const id = String(baslangicId + i);
@@ -574,7 +651,9 @@ export function akademiKatilimcilariUret(
     const soyad = SOYADLAR[(i * 5 + baslangicId) % SOYADLAR.length];
     const kmMi = i % 2 === 1;
     const mulakatiYapanRol: MulakatRolu = kmMi ? "Kulüp Müdürü" : "İK";
-    const mulakatiYapan = kmMi ? KM_ISIMLERI[i % KM_ISIMLERI.length] : IK_ISIMLERI[0];
+    const mulakatiYapan = kmMi
+      ? KM_ISIMLERI[i % KM_ISIMLERI.length]
+      : IK_ISIMLERI[0];
     const basvuruTarihi = `${String(1 + (i % 20)).padStart(2, "0")}.08.2026`;
     const gelmedi = gelmeyenSiralari.includes(i);
     return {
@@ -597,16 +676,34 @@ export function akademiKatilimcilariUret(
         { ad: "Mülakat Formu", durum: "yuklendi", tarih: basvuruTarihi },
         { ad: "Aday CV'si", durum: "yuklendi", tarih: basvuruTarihi },
         ...(kmMi
-          ? [{ ad: "Bölge Müdürü Onayı", durum: "yuklendi" as const, tarih: basvuruTarihi }]
+          ? [
+              {
+                ad: "Bölge Müdürü Onayı",
+                durum: "yuklendi" as const,
+                tarih: basvuruTarihi,
+              },
+            ]
           : []),
       ],
       ikinciBelgeSeti: [
         { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: basvuruTarihi },
-        { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: basvuruTarihi },
-        { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: basvuruTarihi },
+        {
+          ad: "Öğrenim Durumu Belgesi",
+          durum: "yuklendi",
+          tarih: basvuruTarihi,
+        },
+        {
+          ad: "Fiziki Oryantasyon Formu",
+          durum: "yuklendi",
+          tarih: basvuruTarihi,
+        },
       ],
       ikinciBelgeSetiOnaylandi: true,
-      vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "01.09.2026" },
+      vergiLevhasi: {
+        ad: "Vergi Levhası",
+        durum: "yuklendi",
+        tarih: "01.09.2026",
+      },
       bmOnayliKonaklama: i % 3 === 0 ? "Evet" : "Hayır",
       akademiHesabiAcildiMi: true,
       akademiHesapUserId: `AKD-${baslangicId + i}`,
@@ -616,7 +713,13 @@ export function akademiKatilimcilariUret(
       ustBeden: BEDENLER[(i + 1) % BEDENLER.length],
       altBeden: BEDENLER[(i + 2) % BEDENLER.length],
       katilmadigiAkademiler: gelmedi
-        ? [{ akademiId: akademi.id, akademiAdi: akademi.ad, tarih: akademi.baslangicTarihi }]
+        ? [
+            {
+              akademiId: akademi.id,
+              akademiAdi: akademi.ad,
+              tarih: akademi.baslangicTarihi,
+            },
+          ]
         : undefined,
       aksiyonGecmisi: [
         {

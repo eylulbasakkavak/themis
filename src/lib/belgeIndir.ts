@@ -56,7 +56,9 @@ function pdfOlustur(satirlar: string[]): Uint8Array {
   });
   const xref = pdf.length;
   pdf += `xref\n0 ${nesneler.length + 1}\n0000000000 65535 f \n`;
-  pdf += konumlar.map((k) => `${String(k).padStart(10, "0")} 00000 n \n`).join("");
+  pdf += konumlar
+    .map((k) => `${String(k).padStart(10, "0")} 00000 n \n`)
+    .join("");
   pdf += `trailer\n<< /Size ${nesneler.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
   // Tüm karakterler 0–255 aralığında olduğundan her karakter tek bayta yazılır.
   return Uint8Array.from(pdf, (c) => c.charCodeAt(0));
@@ -73,7 +75,7 @@ function dosyaAdiParcasi(metin: string): string {
 export function belgeIndir(
   belge: { ad: string; tarih?: string },
   aday: Pick<AdayEgitmen, "ad" | "soyad" | "themisId">,
-  ekSatirlar: string[] = []
+  ekSatirlar: string[] = [],
 ) {
   const pdf = pdfOlustur([
     belge.ad,
@@ -84,7 +86,7 @@ export function belgeIndir(
     "Themis prototipi — örnek belge.",
   ]);
   const url = URL.createObjectURL(
-    new Blob([pdf.buffer as ArrayBuffer], { type: "application/pdf" })
+    new Blob([pdf.buffer as ArrayBuffer], { type: "application/pdf" }),
   );
   const link = document.createElement("a");
   link.href = url;

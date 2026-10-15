@@ -43,20 +43,23 @@ const KarnelerContext = createContext<KarnelerContextValue | null>(null);
 export function KarnelerProvider({ children }: { children: ReactNode }) {
   const [aktifDonem, setAktifDonem] = useState<string>(guncelDonem());
   const [karneler, setKarneler] = useState<EgitmenKarnesi[]>(baslangicKarneler);
-  const [metrikLimitleri, setMetrikLimitleri] = useState<MetrikLimitleri[]>(baslangicLimitler);
-  const [kulupStudyoSayilari, setKulupStudyoSayilari] = useState<KulupStudyoSayisi[]>(
-    baslangicKulupStudyolari
-  );
+  const [metrikLimitleri, setMetrikLimitleri] =
+    useState<MetrikLimitleri[]>(baslangicLimitler);
+  const [kulupStudyoSayilari, setKulupStudyoSayilari] = useState<
+    KulupStudyoSayisi[]
+  >(baslangicKulupStudyolari);
   const [haricKayitlari, setHaricKayitlari] = useState<KarneHaricKaydi[]>(
-    baslangicHaricKayitlari
+    baslangicHaricKayitlari,
   );
-  const [sabitlemeKayitlari, setSabitlemeKayitlari] = useState<KarneSabitlemeKaydi[]>(
-    baslangicSabitlemeKayitlari
-  );
+  const [sabitlemeKayitlari, setSabitlemeKayitlari] = useState<
+    KarneSabitlemeKaydi[]
+  >(baslangicSabitlemeKayitlari);
 
   const karneleriYukle = (yeniler: EgitmenKarnesi[]) => {
     setKarneler((prev) => {
-      const harita = new Map(prev.map((k) => [`${k.egitmenId}__${k.donem}`, k]));
+      const harita = new Map(
+        prev.map((k) => [`${k.egitmenId}__${k.donem}`, k]),
+      );
       yeniler.forEach((k) => harita.set(`${k.egitmenId}__${k.donem}`, k));
       return Array.from(harita.values());
     });
@@ -71,7 +74,9 @@ export function KarnelerProvider({ children }: { children: ReactNode }) {
 
   const kulupStudyoKaydet = (yeni: KulupStudyoSayisi) => {
     setKulupStudyoSayilari((prev) => {
-      const digerleri = prev.filter((k) => !(k.kulup === yeni.kulup && k.donem === yeni.donem));
+      const digerleri = prev.filter(
+        (k) => !(k.kulup === yeni.kulup && k.donem === yeni.donem),
+      );
       return [...digerleri, yeni];
     });
   };
@@ -93,8 +98,8 @@ export function KarnelerProvider({ children }: { children: ReactNode }) {
       prev.map((k) =>
         k.id === id
           ? { ...k, aktif, donusTarihi: aktif ? undefined : "Bugün" }
-          : k
-      )
+          : k,
+      ),
     );
   };
 
@@ -103,7 +108,9 @@ export function KarnelerProvider({ children }: { children: ReactNode }) {
   };
 
   const sabitlemeGuncelle = (yeni: KarneSabitlemeKaydi) => {
-    setSabitlemeKayitlari((prev) => prev.map((k) => (k.id === yeni.id ? yeni : k)));
+    setSabitlemeKayitlari((prev) =>
+      prev.map((k) => (k.id === yeni.id ? yeni : k)),
+    );
   };
 
   const sabitlemeSil = (id: string) => {
@@ -111,7 +118,9 @@ export function KarnelerProvider({ children }: { children: ReactNode }) {
   };
 
   const sabitlemeAktifligiDegistir = (id: string, aktif: boolean) => {
-    setSabitlemeKayitlari((prev) => prev.map((k) => (k.id === id ? { ...k, aktif } : k)));
+    setSabitlemeKayitlari((prev) =>
+      prev.map((k) => (k.id === id ? { ...k, aktif } : k)),
+    );
   };
 
   const donemiSonlandir = () => {
@@ -148,6 +157,7 @@ export function KarnelerProvider({ children }: { children: ReactNode }) {
 
 export function useKarneler() {
   const ctx = useContext(KarnelerContext);
-  if (!ctx) throw new Error("useKarneler, KarnelerProvider içinde kullanılmalı");
+  if (!ctx)
+    throw new Error("useKarneler, KarnelerProvider içinde kullanılmalı");
   return ctx;
 }

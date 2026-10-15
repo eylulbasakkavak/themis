@@ -8,8 +8,9 @@ export function iseGirisTarihi(a: AdayEgitmen): string {
   if (t !== "Eğitmen" && t !== "Pasif Eğitmen") return "";
   const tarihler = (a.sozlesmeGecmisi ?? []).map((s) => s.baslangicTarihi);
   return (
-    tarihler.sort((x, y) => (tarihCoz(x)?.getTime() ?? 0) - (tarihCoz(y)?.getTime() ?? 0))[0] ??
-    a.basvuruTarihi
+    tarihler.sort(
+      (x, y) => (tarihCoz(x)?.getTime() ?? 0) - (tarihCoz(y)?.getTime() ?? 0),
+    )[0] ?? a.basvuruTarihi
   );
 }
 
@@ -26,7 +27,7 @@ export function egitmeneGecir(
   aday: AdayEgitmen,
   istihdamTipi: IstihdamTipi,
   altSozlesmeTipi: string,
-  yapan: string
+  yapan: string,
 ): AdayEgitmen {
   const tarih = tarihYaz(bugun());
   return {
@@ -56,7 +57,10 @@ export function egitmeneGecir(
 }
 
 /** Olumsuz / ileride değerlendirilebilir adayı akademi mülakatı aşamasına geri alır. */
-export function sureceYenidenDahilEt(aday: AdayEgitmen, yapan: string): AdayEgitmen {
+export function sureceYenidenDahilEt(
+  aday: AdayEgitmen,
+  yapan: string,
+): AdayEgitmen {
   return {
     ...aday,
     gorusmeSonucu: undefined,
@@ -72,7 +76,8 @@ export function sureceYenidenDahilEt(aday: AdayEgitmen, yapan: string): AdayEgit
       ...aday.aksiyonGecmisi,
       {
         tarih: tarihYaz(bugun()),
-        aksiyon: "Aday süreç yeniden dahil edildi, Mülakat Sonucu yeniden değerlendirmeye açıldı",
+        aksiyon:
+          "Aday süreç yeniden dahil edildi, Mülakat Sonucu yeniden değerlendirmeye açıldı",
         yapan,
       },
     ],
@@ -83,12 +88,17 @@ export function sureceYenidenDahilEt(aday: AdayEgitmen, yapan: string): AdayEgit
 export function sozlesmeleriKapat(
   gecmis: SozlesmeKaydi[] | undefined,
   tarih: string,
-  neden: string
+  neden: string,
 ): SozlesmeKaydi[] {
   return (gecmis ?? []).map((k) =>
     k.durum === "Devam Ediyor"
-      ? { ...k, durum: "Sona Erdi" as const, bitisTarihi: tarih, bitisNedeni: neden }
-      : k
+      ? {
+          ...k,
+          durum: "Sona Erdi" as const,
+          bitisTarihi: tarih,
+          bitisNedeni: neden,
+        }
+      : k,
   );
 }
 
@@ -100,10 +110,51 @@ export function sozlesmeDegistir(
   aday: AdayEgitmen,
   yeni: { kulup: string; sozlesmeTipi: IstihdamTipi; altSozlesmeTipi?: string },
   tarih: string,
-  neden: string
+  neden: string,
 ): SozlesmeKaydi[] {
   return [
     ...sozlesmeleriKapat(aday.sozlesmeGecmisi, tarih, neden),
     { ...yeni, baslangicTarihi: tarih, durum: "Devam Ediyor" },
   ];
+}
+
+export type SozlesmeDegisikligi = {
+  tur: "kulup" | "kira";
+  // Değişikliğin geçerlilik tarihi (yeni kaydın başlangıcı), "DD.MM.YYYY".
+  tarih: string;
+  eski: string;
+  yeni: string;
+};
+
+/**
+ * Sözleşme ve kulüp geçmişinden kulüp değişiklikleri (kulüp farklı) ve kira değişiklikleri
+ * (aynı kulüpte sözleşme tipi farklı) — Eğitmen İşlemleri'nden yapılır, raporlamada görünür.
+ */
+export function sozlesmeDegisiklikleri(a: AdayEgitmen): SozlesmeDegisikligi[] {
+  const sira = (t: string) => t.split(".").reverse().join("");
+  const kayitlar = [...(a.sozlesmeGecmisi ?? [])].sort((x, y) =>
+    sira(x.baslangicTarihi).localeCompare(sira(y.baslangicTarihi)),
+  );
+  const tipi = (k: SozlesmeKaydi) => k.altSozlesmeTipi ?? k.sozlesmeTipi;
+  const sonuc: SozlesmeDegisikligi[] = [];
+  for (let i = 1; i < kayitlar.length; i++) {
+    const once = kayitlar[i - 1];
+    const sonra = kayitlar[i];
+    if (once.kulup !== sonra.kulup) {
+      sonuc.push({
+        tur: "kulup",
+        tarih: sonra.baslangicTarihi,
+        eski: once.kulup,
+        yeni: sonra.kulup,
+      });
+    } else if (tipi(once) !== tipi(sonra)) {
+      sonuc.push({
+        tur: "kira",
+        tarih: sonra.baslangicTarihi,
+        eski: tipi(once),
+        yeni: tipi(sonra),
+      });
+    }
+  }
+  return sonuc;
 }

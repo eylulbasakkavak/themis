@@ -6,8 +6,10 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileSpreadsheet } fro
 import { useAdaylar } from "@/lib/AdaylarContext";
 import { bugun, tarihYaz } from "@/lib/akademi";
 import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
+import { akademiDenemeleri, akademiNihaisi, genelSonuclariHesapla } from "@/lib/akademiSinav";
 import {
   sablonIndir,
+  sinavaGirecekEgitmenler,
   sinavaGirecekler,
   sinavExceliniOku,
   type YuklemeHatasi,
@@ -32,10 +34,12 @@ type YuklemeSonucu = { kaydedilen: number; gecti: number; kaldi: number; hatalar
 /** Toplu Akademi Sınav Sonucu Yükleme (PRD 9.1): şablon indir → doldur → yükle. */
 export default function TopluAkademiSinavSonucuPage() {
   const { currentUser } = useCurrentUser();
-  const { adaylar, setAdaylar } = useAdaylar();
+  const { adaylar } = useAdaylar();
   const { donemler } = useAkademiDonemleri();
-  const { topluYukle } = useAkademiSinavSonuclari();
+  const { sinavSonuclari, topluYukle } = useAkademiSinavSonuclari();
   const [akademiId, setAkademiId] = useState("");
+  // 1. sınav herkese; 2. / 3. sınav önceki sınavda kalanlara, yalnızca kalınan derslerden.
+  const [sinavNo, setSinavNo] = useState<1 | 2 | 3>(1);
   const [yukleniyor, setYukleniyor] = useState(false);
   const [sonuc, setSonuc] = useState<YuklemeSonucu | null>(null);
   const [genelHata, setGenelHata] = useState<string | null>(null);
@@ -47,6 +51,9 @@ export default function TopluAkademiSinavSonucuPage() {
   const akademiler = donemler.filter((d) => !d.iptal && d.kayitlilar.length > 0);
   const akademi = donemler.find((d) => d.id === akademiId);
   const katilanlar = akademi ? sinavaGirecekler(akademi, adaylar) : [];
+  const girecekler = akademi
+    ? sinavaGirecekEgitmenler(akademi, adaylar, sinavNo, sinavSonuclari)
+    : [];
 
   const dosyayiYukle = async (dosya: File) => {
     if (!akademi) return;
@@ -56,38 +63,33 @@ export default function TopluAkademiSinavSonucuPage() {
     try {
       const yukleyen = `${currentUser.ad} (${currentUser.rol})`;
       const tarih = tarihYaz(bugun());
-      const okunan = await sinavExceliniOku(dosya, akademi, adaylar, yukleyen, tarih);
+      const okunan = await sinavExceliniOku(
+        dosya,
+        akademi,
+        adaylar,
+        yukleyen,
+        tarih,
+        sinavNo,
+        sinavSonuclari
+      );
       if (okunan.genelHata) {
         setGenelHata(okunan.genelHata);
         return;
       }
-      topluYukle(okunan.sonuclar);
-      const sonucByAday = new Map(okunan.sonuclar.map((s) => [s.egitmenId, s.genelSonuc]));
-      // Sınavı geçen akademi eğitmeni "Eğitmenliğe Geçişe Hazır" olur; kalan aday akademi
-      // eğitmeni olarak kalır ve süreci İK tarafından sonlandırılabilir (PRD 10.1).
-      setAdaylar((prev) =>
-        prev.map((a) => {
-          const genel = sonucByAday.get(a.id);
-          if (!genel) return a;
-          const gecti = genel === "Geçti" && a.surecDurumu === "akademi_egitmeni";
-          return {
-            ...a,
-            surecDurumu: gecti ? "akademiyi_tamamladi" : a.surecDurumu,
-            aksiyonGecmisi: [
-              ...a.aksiyonGecmisi,
-              {
-                tarih,
-                aksiyon: `Akademi sınav sonucu Excel'den yüklendi: ${genel}`,
-                yapan: yukleyen,
-              },
-            ],
-          };
-        })
+      // Genel sonuç ve süreç durumu (geçen akademi eğitmeni "Eğitmenliğe Geçişe Hazır") tüm
+      // denemelerden context'te hesaplanır.
+      topluYukle(okunan.sonuclar, yukleyen, tarih);
+      const sonra = genelSonuclariHesapla([
+        ...sinavSonuclari,
+        ...okunan.sonuclar.map((x, i) => ({ ...x, id: `yeni-${i}` })),
+      ]);
+      const genel = okunan.sonuclar.map(
+        (x) => akademiNihaisi(akademiDenemeleri(sonra, x.egitmenId, akademi.id)).genelSonuc
       );
       setSonuc({
         kaydedilen: okunan.sonuclar.length,
-        gecti: okunan.sonuclar.filter((s) => s.genelSonuc === "Geçti").length,
-        kaldi: okunan.sonuclar.filter((s) => s.genelSonuc === "Kaldı").length,
+        gecti: genel.filter((g) => g === "Geçti").length,
+        kaldi: genel.filter((g) => g === "Kaldı").length,
         hatalar: okunan.hatalar,
       });
     } catch {
@@ -142,10 +144,28 @@ export default function TopluAkademiSinavSonucuPage() {
             </option>
           ))}
         </select>
+        <label className="text-sm font-semibold text-zinc-800" htmlFor="sinavSecimi">
+          Sınav<span className="ml-0.5 text-rose-500">*</span>
+        </label>
+        <select
+          id="sinavSecimi"
+          value={sinavNo}
+          onChange={(e) => {
+            setSinavNo(Number(e.target.value) as 1 | 2 | 3);
+            setSonuc(null);
+            setGenelHata(null);
+          }}
+          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+        >
+          <option value={1}>1. Sınav</option>
+          <option value={2}>2. Sınav</option>
+          <option value={3}>3. Sınav</option>
+        </select>
         {akademi && (
           <span className="text-sm text-zinc-500">
-            Sınava girecek <strong className="text-zinc-800">{katilanlar.length}</strong> eğitmen
-            {akademi.kayitlilar.length > katilanlar.length &&
+            Sınava girecek <strong className="text-zinc-800">{girecekler.length}</strong> eğitmen
+            {sinavNo === 1 &&
+              akademi.kayitlilar.length > katilanlar.length &&
               ` (${akademi.kayitlilar.length - katilanlar.length} kişi akademiye katılmadı)`}
           </span>
         )}
@@ -162,12 +182,14 @@ export default function TopluAkademiSinavSonucuPage() {
             <h2 className="text-base font-semibold text-zinc-900">Şablonu indir</h2>
           </div>
           <p className="text-sm text-zinc-500">
-            Şablon, seçilen akademiye katılan eğitmenlerin Eğitmen ID, ad soyad ve kulüp
-            bilgileriyle otomatik dolu iner; akademi ekibi yalnızca puanları ve genel sonucu girer.
+            Şablon, bu sınava girecek eğitmenlerin Eğitmen ID, ad soyad ve kulüp bilgileriyle
+            otomatik dolu iner; akademi ekibi yalnızca puanları girer. 2. ve 3. sınavda daha önce
+            geçilen dersler gri gelir, yalnızca kalınan derslerin puanı girilir. Genel sonuç Fitness
+            Teorik ve Uygulama derslerinin hepsi 70+ ise &quot;Geçti&quot; olarak hesaplanır.
           </p>
           <button
-            onClick={() => akademi && sablonIndir(akademi, adaylar)}
-            disabled={!akademi || katilanlar.length === 0}
+            onClick={() => akademi && sablonIndir(akademi, adaylar, sinavNo, sinavSonuclari)}
+            disabled={!akademi || girecekler.length === 0}
             className="flex w-fit items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Download className="h-4 w-4" />

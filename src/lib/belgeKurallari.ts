@@ -6,7 +6,10 @@ export const ILK_BELGE_SETI_ADLARI: Record<MulakatRolu, string[]> = {
 };
 
 export function ilkBelgeSetiOlustur(rol: MulakatRolu): Belge[] {
-  return ILK_BELGE_SETI_ADLARI[rol].map((ad) => ({ ad, durum: "yuklenmedi" as const }));
+  return ILK_BELGE_SETI_ADLARI[rol].map((ad) => ({
+    ad,
+    durum: "yuklenmedi" as const,
+  }));
 }
 
 export const IKINCI_BELGE_SETI_ADLARI = [
@@ -16,7 +19,10 @@ export const IKINCI_BELGE_SETI_ADLARI = [
 ];
 
 export function ikinciBelgeSetiOlustur(): Belge[] {
-  return IKINCI_BELGE_SETI_ADLARI.map((ad) => ({ ad, durum: "yuklenmedi" as const }));
+  return IKINCI_BELGE_SETI_ADLARI.map((ad) => ({
+    ad,
+    durum: "yuklenmedi" as const,
+  }));
 }
 
 export function belgeSetiTamamMi(belgeler: Belge[]): boolean {
@@ -31,19 +37,25 @@ export function belgeSetiTamamMi(belgeler: Belge[]): boolean {
  * - Sadece "Olumlu" olan adaylarda süreç devam eder — akademi eğitimine hazır olur.
  */
 export function mulakatSonucuSonrasiDurum(
-  gorusmeSonucu: AdayEgitmen["gorusmeSonucu"]
+  gorusmeSonucu: AdayEgitmen["gorusmeSonucu"],
 ): SurecDurumu {
   if (gorusmeSonucu === "Olumsuz") return "reddedildi";
   // Mülakata gelmeyen adayın süreci sonlanmaz; İK mülakatı yeniden planlayabilir.
   if (gorusmeSonucu === "Katılmadı") return "mulakata_katilmadi";
-  if (gorusmeSonucu === "İleride Değerlendirilebilir") return "ileride_degerlendirilebilir";
+  if (gorusmeSonucu === "İleride Değerlendirilebilir")
+    return "ileride_degerlendirilebilir";
   return "akademi_egitimine_hazir";
 }
 
 /** Mülakat sonucu "Olumlu" olmadıkça süreç ilerlemez — reddedildi ve ileride
  * değerlendirilebilir kararları süreci burada sonlandırır. */
-export function surecDurduruldu(gorusmeSonucu: AdayEgitmen["gorusmeSonucu"]): boolean {
-  return gorusmeSonucu === "Olumsuz" || gorusmeSonucu === "İleride Değerlendirilebilir";
+export function surecDurduruldu(
+  gorusmeSonucu: AdayEgitmen["gorusmeSonucu"],
+): boolean {
+  return (
+    gorusmeSonucu === "Olumsuz" ||
+    gorusmeSonucu === "İleride Değerlendirilebilir"
+  );
 }
 
 /**
@@ -52,7 +64,9 @@ export function surecDurduruldu(gorusmeSonucu: AdayEgitmen["gorusmeSonucu"]): bo
  * Müdürü Onayı" belgesi onay mekanizmasının ta kendisidir. Bu yüzden ilk belge seti,
  * tüm belgeleri yüklenir yüklenmez (role bakılmaksızın) tamamlanmış/onaylanmış sayılır.
  */
-export function ilkBelgeSetiOnaylanmisMi(aday: Pick<AdayEgitmen, "ilkBelgeSeti">): boolean {
+export function ilkBelgeSetiOnaylanmisMi(
+  aday: Pick<AdayEgitmen, "ilkBelgeSeti">,
+): boolean {
   return belgeSetiTamamMi(aday.ilkBelgeSeti);
 }
 
@@ -64,7 +78,7 @@ export function ilkBelgeSetiOnaylanmisMi(aday: Pick<AdayEgitmen, "ilkBelgeSeti">
  * zaten doğrudan set eder.
  */
 export function ikinciBelgeSetiOnaylanmisMi(
-  aday: Pick<AdayEgitmen, "ikinciBelgeSetiOnaylandi">
+  aday: Pick<AdayEgitmen, "ikinciBelgeSetiOnaylandi">,
 ): boolean {
   return !!aday.ikinciBelgeSetiOnaylandi;
 }

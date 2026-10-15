@@ -9,10 +9,16 @@ import { AkademiMulakatiSonucu } from "@/components/aday/AkademiMulakatiSonucu";
 import { BelgeYonetimi } from "@/components/aday/BelgeYonetimi";
 import { GenelBilgi } from "@/components/aday/GenelBilgi";
 import { IhtarKaydi } from "@/components/aday/IhtarKaydi";
-import { SonrakiAksiyonKarti, type ProfilSekmesi } from "@/components/aday/SonrakiAksiyonKarti";
+import {
+  SonrakiAksiyonKarti,
+  type ProfilSekmesi,
+} from "@/components/aday/SonrakiAksiyonKarti";
 import { EgitmenIslemleriPaneli } from "@/components/egitmen/EgitmenIslemleriPaneli";
 import { SertifikaYonetimi } from "@/components/egitmen/SertifikaYonetimi";
+import { SonHareketler } from "@/components/aday/SonHareketler";
+import { GxYetkinligi } from "@/components/aday/GxYetkinligi";
 import { SozlesmeGecmisi } from "@/components/aday/SozlesmeGecmisi";
+import { ikYetkisiVarMi, useCurrentUser } from "@/lib/CurrentUserContext";
 import { surecDurumuGorunumu, uyelikTipi, uyelikTipiBilgi } from "@/lib/status";
 import type { AdayEgitmen } from "@/lib/types";
 
@@ -26,18 +32,23 @@ export function AdayDetayIcerik({
   baslangicTab?: string;
 }) {
   // "akademi-sinav" sekme ikiye bölünmeden önceki id'dir; kayıtlı bildirim linkleri için korunur.
+  const { currentUser } = useCurrentUser();
   const [sekme, setSekme] = useState<string>(
-    baslangicTab === "akademi-sinav" ? "akademi-mulakat" : (baslangicTab ?? "genel")
+    baslangicTab === "akademi-sinav"
+      ? "akademi-mulakat"
+      : (baslangicTab ?? "genel"),
   );
   // Davet aksiyonundan veya davet linkinden gelindiğinde sekmenin başı yerine doğrudan
   // Akademiye Davet kutusuna kaydırılır; sekmeye elle tıklamak kaydırmaz.
   const [kaydirilacak, setKaydirilacak] = useState<string | null>(
-    sekme === "akademi-mulakat" ? "akademi-davet" : null
+    sekme === "akademi-mulakat" ? "akademi-davet" : null,
   );
   useEffect(() => {
     if (!kaydirilacak) return;
     const kare = requestAnimationFrame(() => {
-      document.getElementById(kaydirilacak)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document
+        .getElementById(kaydirilacak)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
       setKaydirilacak(null);
     });
     return () => cancelAnimationFrame(kare);
@@ -62,8 +73,8 @@ export function AdayDetayIcerik({
                 {aday.ad} {aday.soyad}
               </h1>
               <p className="text-sm text-zinc-500">
-                <span className="font-mono">#{aday.themisId}</span> · {aday.kulup} ·{" "}
-                {aday.mulakatiYapanRol} mülakatı
+                <span className="font-mono">#{aday.themisId}</span> ·{" "}
+                {aday.kulup} · {aday.mulakatiYapanRol} mülakatı
               </p>
             </div>
           </div>
@@ -87,41 +98,65 @@ export function AdayDetayIcerik({
             id: "genel",
             label: "Genel Bilgi",
             content: (
-              <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-                <div className="order-2 lg:order-1">
-                  <GenelBilgi aday={aday} onAdayGuncelle={onAdayGuncelle} />
+              <div className="flex flex-col gap-5">
+                <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+                  <div className="order-2 flex flex-col gap-5 lg:order-1">
+                    <GenelBilgi aday={aday} onAdayGuncelle={onAdayGuncelle} />
+                  </div>
+                  <div className="order-1 flex flex-col gap-4 lg:sticky lg:top-0 lg:order-2">
+                    <SonrakiAksiyonKarti
+                      key={aday.id}
+                      aday={aday}
+                      onAdayGuncelle={onAdayGuncelle}
+                      onSekmeAc={sekmeAc}
+                    />
+                    {/* Kulüp değişikliği, sözleşme tipi ve fesih yalnızca İK / Sistem Yöneticisi'nde. */}
+                    {aday.surecDurumu === "egitmen" &&
+                      onAdayGuncelle &&
+                      ikYetkisiVarMi(currentUser.rol) && (
+                        <EgitmenIslemleriPaneli
+                          aday={aday}
+                          onAdayGuncelle={onAdayGuncelle}
+                        />
+                      )}
+                  </div>
                 </div>
-                <div className="order-1 flex flex-col gap-4 lg:sticky lg:top-0 lg:order-2">
-                  <SonrakiAksiyonKarti
-                    key={aday.id}
-                    aday={aday}
-                    onAdayGuncelle={onAdayGuncelle}
-                    onSekmeAc={sekmeAc}
-                  />
-                  {aday.surecDurumu === "egitmen" && onAdayGuncelle && (
-                    <EgitmenIslemleriPaneli aday={aday} onAdayGuncelle={onAdayGuncelle} />
-                  )}
-                </div>
+                {/* Ekranın en altında, iki sütunu da kapsayan yatay son hareketler şeridi. */}
+                <SonHareketler aday={aday} />
               </div>
             ),
           },
           {
             id: "belgeler",
             label: "Belgeler",
-            content: <BelgeYonetimi key={aday.id} aday={aday} onAdayGuncelle={onAdayGuncelle} />,
+            content: (
+              <BelgeYonetimi
+                key={aday.id}
+                aday={aday}
+                onAdayGuncelle={onAdayGuncelle}
+              />
+            ),
           },
           {
             id: "kademe-federasyon",
             label: "Sertifikalar",
-            content: <SertifikaYonetimi aday={aday} onAdayGuncelle={onAdayGuncelle} />,
+            content: (
+              <SertifikaYonetimi aday={aday} onAdayGuncelle={onAdayGuncelle} />
+            ),
           },
           {
             id: "akademi-mulakat",
             label: "Akademi Mülakatı & Akademiye Davet",
             content: (
               <div className="flex flex-col gap-4">
-                <AkademiMulakatiSonucu aday={aday} onAdayGuncelle={onAdayGuncelle} />
-                <AkademiEgitimineDavet aday={aday} onAdayGuncelle={onAdayGuncelle} />
+                <AkademiMulakatiSonucu
+                  aday={aday}
+                  onAdayGuncelle={onAdayGuncelle}
+                />
+                <AkademiEgitimineDavet
+                  aday={aday}
+                  onAdayGuncelle={onAdayGuncelle}
+                />
               </div>
             ),
           },
@@ -129,6 +164,13 @@ export function AdayDetayIcerik({
             id: "sinav-sonuclari",
             label: "Akademi Sınav Sonuçları",
             content: <AkademiSinavSonuclari aday={aday} />,
+          },
+          {
+            id: "gx-yetkinligi",
+            label: "GX Yetkinliği",
+            content: (
+              <GxYetkinligi aday={aday} onAdayGuncelle={onAdayGuncelle} />
+            ),
           },
           {
             id: "sozlesme",

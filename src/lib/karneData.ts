@@ -59,13 +59,18 @@ const elleGirilenSabitlemeKayitlari: KarneSabitlemeKaydi[] = [
 ];
 
 /** Sentetik eğitmenler (21..63) içinden GX/Pilates/Havuz olmayanların indeksleri (0-based, 21'e göreceli). */
-const GECMIS_EGITMEN_INDEKSLERI = Array.from({ length: 43 }, (_, i) => i).filter(
-  (i) => !sentetikOzelBransMi(i)
-);
+const GECMIS_EGITMEN_INDEKSLERI = Array.from(
+  { length: 43 },
+  (_, i) => i,
+).filter((i) => !sentetikOzelBransMi(i));
 
 /** Raporlama sayfasında geçmiş dönem filtresinin dolu görünmesi için kullanılan eski dönemler. */
 const GECMIS_DONEMLER = ["2025-2", "2025-1", "2024-2", "2024-1"];
-const GECMIS_GIRENLER = ["Elif Su (İK)", "Mert Aydın (Kulüp Müdürü)", "Selin Kaya (İK)"];
+const GECMIS_GIRENLER = [
+  "Elif Su (İK)",
+  "Mert Aydın (Kulüp Müdürü)",
+  "Selin Kaya (İK)",
+];
 const GECMIS_GUNLER = ["05", "10", "15", "20", "25"];
 
 function donemYili(donem: string): string {
@@ -85,7 +90,8 @@ function sentetikGecmisHaricKayitlariUret(adet: number): KarneHaricKaydi[] {
   const sebepler = IZIN_SEBEPLERI.filter((s) => s !== "Diğer");
   const sonuc: KarneHaricKaydi[] = [];
   for (let i = 0; i < adet; i++) {
-    const egitmenIndeksi = GECMIS_EGITMEN_INDEKSLERI[i % GECMIS_EGITMEN_INDEKSLERI.length];
+    const egitmenIndeksi =
+      GECMIS_EGITMEN_INDEKSLERI[i % GECMIS_EGITMEN_INDEKSLERI.length];
     const donem = GECMIS_DONEMLER[i % GECMIS_DONEMLER.length];
     const ay = donemBaslangicAyi(donem) + (i % 3);
     const yil = donemYili(donem);
@@ -110,7 +116,9 @@ function sentetikGecmisHaricKayitlariUret(adet: number): KarneHaricKaydi[] {
  * geçmiş dönemlerde de dolu görünmesi içindir. Fraud artık ayrı bir kalıcı liste
  * değil, "Ligi Sabitlenenler" listesinde sebebi Fraud olan normal kayıtlardır.
  */
-function sentetikGecmisSabitlemeKayitlariUret(adet: number): KarneSabitlemeKaydi[] {
+function sentetikGecmisSabitlemeKayitlariUret(
+  adet: number,
+): KarneSabitlemeKaydi[] {
   const sonuc: KarneSabitlemeKaydi[] = [];
   for (let i = 0; i < adet; i++) {
     // Hariç kayıtlarıyla aynı eğitmenlere denk gelmemesi için indeks kaydırılır.
@@ -144,18 +152,102 @@ export const karneSabitlemeKayitlari: KarneSabitlemeKaydi[] = [
 ];
 
 export const kulupStudyoSayilari: KulupStudyoSayisi[] = [
-  { id: "ks-atasehir-2", kulup: "Ataşehir", donem: "2026-2", gxSayisi: 5, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks-bahcesehir-2", kulup: "Bahçeşehir", donem: "2026-2", gxSayisi: 3, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks-bakirkoy-2", kulup: "Bakırköy", donem: "2026-2", gxSayisi: 4, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks1", kulup: "Beşiktaş", donem: "2026-2", gxSayisi: 6, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks-bostanci-2", kulup: "Bostancı", donem: "2026-2", gxSayisi: 4, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks-etiler-2", kulup: "Etiler", donem: "2026-2", gxSayisi: 3, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks-kadikoy-2", kulup: "Kadıköy", donem: "2026-2", gxSayisi: 5, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks2", kulup: "Levent", donem: "2026-2", gxSayisi: 4, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks-maslak-2", kulup: "Maslak", donem: "2026-2", gxSayisi: 2, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks-sisli-2", kulup: "Şişli", donem: "2026-2", gxSayisi: 3, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks-umraniye-2", kulup: "Ümraniye", donem: "2026-2", gxSayisi: 4, girisTarihi: "01.08.2026", giren: "Elif Su (İK)" },
-  { id: "ks3", kulup: "Beşiktaş", donem: "2026-1", gxSayisi: 5, girisTarihi: "05.01.2026", giren: "Elif Su (İK)" },
+  {
+    id: "ks-atasehir-2",
+    kulup: "Ataşehir",
+    donem: "2026-2",
+    gxSayisi: 5,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks-bahcesehir-2",
+    kulup: "Bahçeşehir",
+    donem: "2026-2",
+    gxSayisi: 3,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks-bakirkoy-2",
+    kulup: "Bakırköy",
+    donem: "2026-2",
+    gxSayisi: 4,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks1",
+    kulup: "Beşiktaş",
+    donem: "2026-2",
+    gxSayisi: 6,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks-bostanci-2",
+    kulup: "Bostancı",
+    donem: "2026-2",
+    gxSayisi: 4,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks-etiler-2",
+    kulup: "Etiler",
+    donem: "2026-2",
+    gxSayisi: 3,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks-kadikoy-2",
+    kulup: "Kadıköy",
+    donem: "2026-2",
+    gxSayisi: 5,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks2",
+    kulup: "Levent",
+    donem: "2026-2",
+    gxSayisi: 4,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks-maslak-2",
+    kulup: "Maslak",
+    donem: "2026-2",
+    gxSayisi: 2,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks-sisli-2",
+    kulup: "Şişli",
+    donem: "2026-2",
+    gxSayisi: 3,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks-umraniye-2",
+    kulup: "Ümraniye",
+    donem: "2026-2",
+    gxSayisi: 4,
+    girisTarihi: "01.08.2026",
+    giren: "Elif Su (İK)",
+  },
+  {
+    id: "ks3",
+    kulup: "Beşiktaş",
+    donem: "2026-1",
+    gxSayisi: 5,
+    girisTarihi: "05.01.2026",
+    giren: "Elif Su (İK)",
+  },
 ];
 
 /**
@@ -475,7 +567,7 @@ function sentetikKarnelerUret(
   baslangicKarneId: number,
   donem: string,
   alanlarUret: (i: number) => EgitmenKarneAlanlari,
-  yuklemeTarihi: string
+  yuklemeTarihi: string,
 ): EgitmenKarnesi[] {
   const sonuc: EgitmenKarnesi[] = [];
   for (let i = 0; i < adet; i++) {
@@ -496,9 +588,37 @@ function sentetikKarnelerUret(
 export const egitmenKarneleri: EgitmenKarnesi[] = [
   ...elleGirilenKarneler,
   ...elleGirilenGecmisKarneler,
-  ...sentetikKarnelerUret(21, 43, 100, "2026-2", sentetikAlanlarUret, "05.08.2026"),
-  ...sentetikKarnelerUret(21, 43, 300, "2026-1", sentetikGecmisAlanlarUret, "05.07.2026"),
+  ...sentetikKarnelerUret(
+    21,
+    43,
+    100,
+    "2026-2",
+    sentetikAlanlarUret,
+    "05.08.2026",
+  ),
+  ...sentetikKarnelerUret(
+    21,
+    43,
+    300,
+    "2026-1",
+    sentetikGecmisAlanlarUret,
+    "05.07.2026",
+  ),
   // egitmenUret.ts ile üretilen eğitmenler (ID 400+); profilde karne statüsü boş kalmasın.
-  ...sentetikKarnelerUret(400, 75, 500, "2026-2", sentetikAlanlarUret, "05.08.2026"),
-  ...sentetikKarnelerUret(400, 75, 700, "2026-1", sentetikGecmisAlanlarUret, "05.07.2026"),
+  ...sentetikKarnelerUret(
+    400,
+    75,
+    500,
+    "2026-2",
+    sentetikAlanlarUret,
+    "05.08.2026",
+  ),
+  ...sentetikKarnelerUret(
+    400,
+    75,
+    700,
+    "2026-1",
+    sentetikGecmisAlanlarUret,
+    "05.07.2026",
+  ),
 ];

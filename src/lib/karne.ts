@@ -8,7 +8,10 @@ import type {
   MetrikLimitleri,
 } from "./types";
 
-export type MetrikLimitAlani = keyof Omit<MetrikLimitleri, "id" | "donem" | "girisTarihi" | "giren">;
+export type MetrikLimitAlani = keyof Omit<
+  MetrikLimitleri,
+  "id" | "donem" | "girisTarihi" | "giren"
+>;
 
 /**
  * GX, Pilates ve Havuz eğitmenleri karneye dahil edilmez — Flyby'daki tanımlı
@@ -16,30 +19,38 @@ export type MetrikLimitAlani = keyof Omit<MetrikLimitleri, "id" | "donem" | "gir
  */
 const KARNE_DISI_SOZLESME_TIPLERI = ["GX", "Pilates", "Havuz"];
 
-export function karneOtomatikHaricMi(aday: Pick<AdayEgitmen, "sozlesmeTipi">): boolean {
-  return !!aday.sozlesmeTipi && KARNE_DISI_SOZLESME_TIPLERI.includes(aday.sozlesmeTipi);
+export function karneOtomatikHaricMi(
+  aday: Pick<AdayEgitmen, "sozlesmeTipi">,
+): boolean {
+  return (
+    !!aday.sozlesmeTipi &&
+    KARNE_DISI_SOZLESME_TIPLERI.includes(aday.sozlesmeTipi)
+  );
 }
 
 /** Bir eğitmenin, varsa şu an aktif olan (hâlâ hariç tutan) İzinli hariç kaydı. */
 export function aktifHaricKaydi(
   egitmenId: string,
-  kayitlar: KarneHaricKaydi[]
+  kayitlar: KarneHaricKaydi[],
 ): KarneHaricKaydi | undefined {
   return kayitlar.find((k) => k.egitmenId === egitmenId && k.aktif);
 }
 
 export function karneyeDahilMi(
   aday: Pick<AdayEgitmen, "id" | "sozlesmeTipi">,
-  haricKayitlari: KarneHaricKaydi[]
+  haricKayitlari: KarneHaricKaydi[],
 ): boolean {
-  return !karneOtomatikHaricMi(aday) && !aktifHaricKaydi(aday.id, haricKayitlari);
+  return (
+    !karneOtomatikHaricMi(aday) && !aktifHaricKaydi(aday.id, haricKayitlari)
+  );
 }
 
 export function karneHaricSebebi(
   aday: Pick<AdayEgitmen, "id" | "sozlesmeTipi">,
-  haricKayitlari: KarneHaricKaydi[]
+  haricKayitlari: KarneHaricKaydi[],
 ): string | null {
-  if (karneOtomatikHaricMi(aday)) return `${aday.sozlesmeTipi} Sözleşmesi (otomatik)`;
+  if (karneOtomatikHaricMi(aday))
+    return `${aday.sozlesmeTipi} Sözleşmesi (otomatik)`;
   return aktifHaricKaydi(aday.id, haricKayitlari)?.sebep ?? null;
 }
 
@@ -70,7 +81,10 @@ export const SABITLEME_SEBEPLERI = [
 export type SabitlemeSebebi = (typeof SABITLEME_SEBEPLERI)[number];
 
 /** Slide 5'teki 9 histogramla birebir eşleşen ham metrik listesi — threshold girişinde kullanılır. */
-export const METRIK_LIMIT_ALANLARI: { alan: MetrikLimitAlani; label: string }[] = [
+export const METRIK_LIMIT_ALANLARI: {
+  alan: MetrikLimitAlani;
+  label: string;
+}[] = [
   { alan: "fitStartTekil", label: "Fit Start Tekil" },
   { alan: "grupDersiTekil", label: "Grup Dersi Tekil" },
   { alan: "ptTekil", label: "PT Tekil" },
@@ -87,7 +101,11 @@ export const METRIK_LIMIT_ALANLARI: { alan: MetrikLimitAlani; label: string }[] 
  * amaçlıdır — final puanı Themis hesaplamaz, data ekibinin script'i hesaplayıp
  * Excel üzerinden yükler.
  */
-export const KARNE_AGIRLIKLARI: { alan: keyof EgitmenKarneAlanlari; label: string; agirlik: number }[] = [
+export const KARNE_AGIRLIKLARI: {
+  alan: keyof EgitmenKarneAlanlari;
+  label: string;
+  agirlik: number;
+}[] = [
   { alan: "olcumProgram", label: "Ölçüm ve Program üye sayısı", agirlik: 0.2 },
   { alan: "grupDersi", label: "Grup dersi katılımcı sayısı", agirlik: 0.2 },
   { alan: "ptDersi", label: "PT dersi katılımcı sayısı", agirlik: 0.1 },
@@ -98,16 +116,17 @@ export const KARNE_AGIRLIKLARI: { alan: keyof EgitmenKarneAlanlari; label: strin
   { alan: "kulupSadakati", label: "Kulüp sadakati", agirlik: 0.05 },
 ];
 
-export const KARNE_ALAN_ETIKETLERI: Record<keyof EgitmenKarneAlanlari, string> = {
-  olcumProgram: "Ölçüm/Program",
-  grupDersi: "Grup Dersi",
-  ptDersi: "PT Dersi",
-  alanHizmeti: "Alan Hizmeti",
-  npsPozitifCevap: "NPS Poz. Cevap",
-  calismaSuresi: "Çalışma Süresi",
-  kulupMemnuniyeti: "Kulüp Memnuniyeti",
-  kulupSadakati: "Kulüp Sadakati",
-};
+export const KARNE_ALAN_ETIKETLERI: Record<keyof EgitmenKarneAlanlari, string> =
+  {
+    olcumProgram: "Ölçüm/Program",
+    grupDersi: "Grup Dersi",
+    ptDersi: "PT Dersi",
+    alanHizmeti: "Alan Hizmeti",
+    npsPozitifCevap: "NPS Poz. Cevap",
+    calismaSuresi: "Çalışma Süresi",
+    kulupMemnuniyeti: "Kulüp Memnuniyeti",
+    kulupSadakati: "Kulüp Sadakati",
+  };
 
 /**
  * "Excel'den Yükle" mock'u için örnek karne alanları üretir. Bu prototipte gerçek bir
@@ -135,11 +154,19 @@ export function ornekKarneAlanlariUret(): EgitmenKarneAlanlari {
 }
 
 export function ornekFinalPuanHesapla(alanlar: EgitmenKarneAlanlari): number {
-  const toplam = KARNE_AGIRLIKLARI.reduce((acc, k) => acc + alanlar[k.alan] * k.agirlik, 0);
+  const toplam = KARNE_AGIRLIKLARI.reduce(
+    (acc, k) => acc + alanlar[k.alan] * k.agirlik,
+    0,
+  );
   return Math.round(toplam);
 }
 
-export const LIG_SIRASI: EgitmenLig[] = ["Silver", "Gold", "Platinum", "Diamond"];
+export const LIG_SIRASI: EgitmenLig[] = [
+  "Silver",
+  "Gold",
+  "Platinum",
+  "Diamond",
+];
 
 export const LIG_TONU: Record<EgitmenLig, Tone> = {
   Silver: "gray",
@@ -169,9 +196,11 @@ export function puanTonu(puan: number): Tone {
 /** Bir eğitmenin en son girdiği, dönüşte ligini sabitleyen İzinli hariç kaydı (varsa). */
 function sonSabitleyenHaricKaydi(
   egitmenId: string,
-  kayitlar: KarneHaricKaydi[]
+  kayitlar: KarneHaricKaydi[],
 ): KarneHaricKaydi | undefined {
-  const kendisi = kayitlar.filter((k) => k.egitmenId === egitmenId && k.oncekiLig);
+  const kendisi = kayitlar.filter(
+    (k) => k.egitmenId === egitmenId && k.oncekiLig,
+  );
   return kendisi[kendisi.length - 1];
 }
 
@@ -179,7 +208,7 @@ function sonSabitleyenHaricKaydi(
  * çıkarmadan bağımsızdır — eğitmen karnede görünmeye devam eder, sadece ligi sabitlenir. */
 export function aktifSabitlemeKaydi(
   egitmenId: string,
-  kayitlar: KarneSabitlemeKaydi[]
+  kayitlar: KarneSabitlemeKaydi[],
 ): KarneSabitlemeKaydi | undefined {
   return kayitlar.find((k) => k.egitmenId === egitmenId && k.aktif);
 }
@@ -196,7 +225,7 @@ export function efektifLig(
   egitmenId: string,
   finalPuan: number,
   haricKayitlari: KarneHaricKaydi[],
-  sabitlemeKayitlari: KarneSabitlemeKaydi[] = []
+  sabitlemeKayitlari: KarneSabitlemeKaydi[] = [],
 ): EgitmenLig {
   const sabitleme = aktifSabitlemeKaydi(egitmenId, sabitlemeKayitlari);
   if (sabitleme) return sabitleme.lig;
@@ -209,7 +238,7 @@ export function efektifLig(
 export function ligSabitliMi(
   egitmenId: string,
   haricKayitlari: KarneHaricKaydi[],
-  sabitlemeKayitlari: KarneSabitlemeKaydi[] = []
+  sabitlemeKayitlari: KarneSabitlemeKaydi[] = [],
 ): boolean {
   if (aktifSabitlemeKaydi(egitmenId, sabitlemeKayitlari)) return true;
   return !!sonSabitleyenHaricKaydi(egitmenId, haricKayitlari);

@@ -30,6 +30,8 @@ import {
   ihtarKimligi,
   ihtarOnayla,
   ihtarReddet,
+  seminerOnayla,
+  seminerReddet,
   sertifikaOnayla,
   sertifikaReddet,
   temelEgitimOnayla,
@@ -48,7 +50,13 @@ const DURUM_SEKMELERI: { deger: Durum; label: string }[] = [
 ];
 
 type TalepKaynagi =
-  "belge-seti" | "akademi-daveti" | "kademe-sertifikasi" | "vize" | "temel-egitim" | "ihtar";
+    | "belge-seti"
+  | "akademi-daveti"
+  | "kademe-sertifikasi"
+  | "vize"
+  | "temel-egitim"
+  | "gelisim-semineri"
+  | "ihtar";
 
 /** Satırlarda gösterilen talep türü: kısa ad, ikon ve ikon rengi. */
 const KAYNAK_BILGI: Record<
@@ -85,6 +93,12 @@ const KAYNAK_BILGI: Record<
     ikon: BookOpen,
     renk: "bg-indigo-50 text-indigo-600",
     varsayilanOzet: "Temel eğitim sonucu girildi",
+  },
+  "gelisim-semineri": {
+    ad: "Gelişim Semineri",
+    ikon: GraduationCap,
+    renk: "bg-teal-50 text-teal-600",
+    varsayilanOzet: "Gelişim semineri girildi",
   },
   ihtar: {
     ad: "İhtar",
@@ -246,12 +260,13 @@ function OnayBekleyenlerIcerik() {
           aday: a,
           kaynak: "temel-egitim",
           kayitId: t.id,
-          belge: {
+          // Sınav sonuç belgesi (eğitmenin MAC+'tan yüklediği); katılmadıysa özet kaydı.
+          belge: t.belge ?? {
             ad: `${t.hedefKademe}. Kademe Temel Eğitim Sonucu`,
             durum: "yuklendi",
             tarih: t.tarih,
           },
-          tip: `Temel Eğitim Sonucu (${t.brans} ${t.hedefKademe}. Kademe)`,
+          tip: `Temel Eğitim Sonucu (${t.brans ?? "Fitness"} ${t.hedefKademe}. Kademe)`,
           ozet:
             t.sonuc === "Katılmadı"
               ? `Sınav ${t.sinavTarihi} · Katılmadı · mazeret: ${t.mazeret ?? "—"}`
@@ -259,6 +274,20 @@ function OnayBekleyenlerIcerik() {
           hedefTab: "kademe-federasyon",
           durum: durumu(t),
           gonderen: t.yukleyen,
+        });
+      }
+      for (const g of a.gelisimSeminerleri ?? []) {
+        liste.push({
+          id: `${a.id}-seminer-${g.id}`,
+          aday: a,
+          kaynak: "gelisim-semineri",
+          kayitId: g.id,
+          belge: g.belge,
+          tip: `Gelişim Semineri (${g.brans})`,
+          ozet: `${g.brans} · ${g.ad} · ${g.seminerTarihi}`,
+          hedefTab: "kademe-federasyon",
+          durum: durumu(g),
+          gonderen: g.yukleyen,
         });
       }
       // PRD 11.4: KM/KMY'nin girdiği ihtar kayıtları (onay alanı olmayan eski kayıtlar hariç).
@@ -354,6 +383,7 @@ function OnayBekleyenlerIcerik() {
       t.kaynak === "kademe-sertifikasi" ||
       t.kaynak === "vize" ||
       t.kaynak === "temel-egitim" ||
+      t.kaynak === "gelisim-semineri" ||
       t.kaynak === "ihtar"
     ) {
       guncelleAday(
@@ -363,7 +393,9 @@ function OnayBekleyenlerIcerik() {
             ? vizeOnayla(t.aday, t.sertifikaId!, t.kayitId!)
             : t.kaynak === "ihtar"
               ? ihtarOnayla(t.aday, t.kayitId!)
-              : temelEgitimOnayla(t.aday, t.kayitId!)
+              : t.kaynak === "gelisim-semineri"
+                ? seminerOnayla(t.aday, t.kayitId!)
+                : temelEgitimOnayla(t.aday, t.kayitId!)
       );
       bildirimEkle({
         aliciRol: t.aday.mulakatiYapanRol,
@@ -438,6 +470,7 @@ function OnayBekleyenlerIcerik() {
       t.kaynak === "kademe-sertifikasi" ||
       t.kaynak === "vize" ||
       t.kaynak === "temel-egitim" ||
+      t.kaynak === "gelisim-semineri" ||
       t.kaynak === "ihtar"
     ) {
       guncelleAday(
@@ -447,7 +480,9 @@ function OnayBekleyenlerIcerik() {
             ? vizeReddet(t.aday, t.sertifikaId!, t.kayitId!, sebep)
             : t.kaynak === "ihtar"
               ? ihtarReddet(t.aday, t.kayitId!, sebep)
-              : temelEgitimReddet(t.aday, t.kayitId!, sebep)
+              : t.kaynak === "gelisim-semineri"
+                ? seminerReddet(t.aday, t.kayitId!, sebep)
+                : temelEgitimReddet(t.aday, t.kayitId!, sebep)
       );
       bildirimEkle({
         aliciRol: t.aday.mulakatiYapanRol,

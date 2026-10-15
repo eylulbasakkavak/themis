@@ -1,7 +1,12 @@
-import type { AdayEgitmen, AkademiDonemi, AkademiSinavSonucu, SinavBasligi } from "./types";
+import { akademiDenemeleri, akademiNihaisi, GECME_PUANI } from "./akademiSinav";
+import type {
+  AdayEgitmen,
+  AkademiDonemi,
+  AkademiSinavSonucu,
+  SinavBasligi,
+} from "./types";
 
-/** Puanı bu değerin altında olan ders "kaldı" olarak işaretlenir (PRD 9.1). */
-export const GECME_PUANI = 70;
+export { GECME_PUANI };
 
 /** Akademi ekibinin kullandığı sınav Excel'inin kolonları (SINAV SONUCU.xlsx). */
 export const VARSAYILAN_SINAV_BASLIKLARI: SinavBasligi[] = [
@@ -22,7 +27,8 @@ export const VARSAYILAN_GENEL_SONUC_BASLIGI = "PERSONAL TRAINING";
 
 const KIMLIK_KOLONLARI = ["EĞİTMEN ID", "AD SOYAD", "KULÜP"];
 
-const buyuk = (v: string) => v.trim().toLocaleUpperCase("tr-TR").replace(/\s+/g, " ");
+const buyuk = (v: string) =>
+  v.trim().toLocaleUpperCase("tr-TR").replace(/\s+/g, " ");
 
 /** Ardışık aynı gruptaki başlıkları birleştirir (tablo başlığında colSpan için). */
 export function basliklariGrupla(basliklar: SinavBasligi[]) {
@@ -47,30 +53,64 @@ function dosyaIndir(veri: ArrayBuffer, dosyaAdi: string) {
   URL.revokeObjectURL(url);
 }
 
+/** Akademi bitince devamsızlık nedeniyle Akademi Eğitmeni sözleşmesi kapatıldı mı. */
+export const sozlesmesiKapandiMi = (a: AdayEgitmen, akademi: AkademiDonemi) =>
+  !!a.katilmadigiAkademiler?.some((k) => k.akademiId === akademi.id);
+
 /**
- * Akademi yoklamasında "Gelmedi" işaretlenenler sınava girmez; şablona ve yüklemeye dahil
- * edilmez.
+ * Sınava akademiye kayıtlı adaylar girer; devamsızlık nedeniyle sözleşmesi kapatılanlar şablona
+ * ve yüklemeye dahil edilmez.
  */
-export function sinavaGirecekler(akademi: AkademiDonemi, adaylar: AdayEgitmen[]): AdayEgitmen[] {
+export function sinavaGirecekler(
+  akademi: AkademiDonemi,
+  adaylar: AdayEgitmen[],
+): AdayEgitmen[] {
   return akademi.kayitlilar
-    .filter((id) => akademi.yoklama?.[id] !== "Gelmedi")
     .map((id) => adaylar.find((a) => a.id === id))
-    .filter((a): a is AdayEgitmen => !!a);
+    .filter((a): a is AdayEgitmen => !!a)
+    .filter((a) => !sozlesmesiKapandiMi(a, akademi));
 }
 
 /**
- * Seçilen akademinin sınav sonucu şablonunu indirir: akademiye katılan eğitmenlerin Eğitmen
- * ID, ad soyad ve kulüp bilgileri otomatik doldurulur, puanlar boş bırakılır.
+ * Bu sınava girecek eğitmenler: 1. sınavda akademiye katılanların hepsi; 2. / 3. sınavda yalnızca
+ * önceki sınavda kalan ve hakkı olanlar.
  */
-export async function sablonIndir(akademi: AkademiDonemi, adaylar: AdayEgitmen[]) {
+export function sinavaGirecekEgitmenler(
+  akademi: AkademiDonemi,
+  adaylar: AdayEgitmen[],
+  sinavNo: 1 | 2 | 3,
+  sonuclar: AkademiSinavSonucu[],
+): AdayEgitmen[] {
+  const katilanlar = sinavaGirecekler(akademi, adaylar);
+  if (sinavNo === 1) return katilanlar;
+  return katilanlar.filter(
+    (a) =>
+      akademiNihaisi(akademiDenemeleri(sonuclar, a.id, akademi.id))
+        .sonrakiSinavNo === sinavNo,
+  );
+}
+
+/**
+ * Seçilen akademinin sınav sonucu şablonunu indirir: sınava girecek eğitmenlerin Eğitmen ID, ad
+ * soyad ve kulüp bilgileri otomatik doldurulur, puanlar boş bırakılır. 2. / 3. sınavda daha önce
+ * geçilen dersler gri ve kapalıdır (yalnızca kalınan derslere girilir). Genel sonuç Excel'de
+ * girilmez; Fitness derslerinden hesaplanır.
+ */
+export async function sablonIndir(
+  akademi: AkademiDonemi,
+  adaylar: AdayEgitmen[],
+  sinavNo: 1 | 2 | 3 = 1,
+  sonuclar: AkademiSinavSonucu[] = [],
+) {
   const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Sınav Sonucu");
   const basliklar = VARSAYILAN_SINAV_BASLIKLARI;
-  const toplamKolon = KIMLIK_KOLONLARI.length + basliklar.length + 1;
+  const toplamKolon = KIMLIK_KOLONLARI.length + basliklar.length;
 
   // 1. satır: akademi bilgisi ve grup başlıkları; 2. satır: kolon başlıkları.
-  ws.getRow(1).getCell(1).value = `${akademi.ad}\n${akademi.baslangicTarihi} AKADEMİ DÖNEMİ`;
+  ws.getRow(1).getCell(1).value =
+    `${akademi.ad}\n${akademi.baslangicTarihi} AKADEMİ DÖNEMİ · ${sinavNo}. SINAV`;
   ws.mergeCells(1, 1, 1, KIMLIK_KOLONLARI.length);
   let kolon = KIMLIK_KOLONLARI.length + 1;
   for (const g of basliklariGrupla(basliklar)) {
@@ -78,20 +118,29 @@ export async function sablonIndir(akademi: AkademiDonemi, adaylar: AdayEgitmen[]
     if (g.adet > 1) ws.mergeCells(1, kolon, 1, kolon + g.adet - 1);
     kolon += g.adet;
   }
-  ws.getRow(1).getCell(toplamKolon).value = GENEL_SONUC_GRUBU;
-  [...KIMLIK_KOLONLARI, ...basliklar.map((b) => b.ad), VARSAYILAN_GENEL_SONUC_BASLIGI].forEach(
-    (ad, i) => {
-      ws.getRow(2).getCell(i + 1).value = ad;
-    }
-  );
+  [...KIMLIK_KOLONLARI, ...basliklar.map((b) => b.ad)].forEach((ad, i) => {
+    ws.getRow(2).getCell(i + 1).value = ad;
+  });
 
   for (const satir of [1, 2]) {
     ws.getRow(satir).height = satir === 1 ? 32 : 30;
     for (let c = 1; c <= toplamKolon; c++) {
       const cell = ws.getRow(satir).getCell(c);
-      cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: satir === 1 ? 11 : 9 };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF000000" } };
-      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.font = {
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+        size: satir === 1 ? 11 : 9,
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF000000" },
+      };
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
       cell.border = {
         top: { style: "thin" },
         bottom: { style: "thin" },
@@ -105,11 +154,29 @@ export async function sablonIndir(akademi: AkademiDonemi, adaylar: AdayEgitmen[]
     { width: 26 },
     { width: 26 },
     ...basliklar.map(() => ({ width: 11 })),
-    { width: 13 },
   ];
   ws.views = [{ state: "frozen", xSplit: 2, ySplit: 2 }];
 
-  const kayitlilar = sinavaGirecekler(akademi, adaylar);
+  const kayitlilar = sinavaGirecekEgitmenler(
+    akademi,
+    adaylar,
+    sinavNo,
+    sonuclar,
+  );
+  // 2. / 3. sınavda her eğitmenin daha önce geçtiği dersler (gri, girilmez).
+  const gecilenler = (a: AdayEgitmen) => {
+    if (sinavNo === 1) return new Set<number>();
+    const kalinan = akademiNihaisi(
+      akademiDenemeleri(sonuclar, a.id, akademi.id),
+    ).kalinanDersler;
+    return new Set(
+      basliklar
+        .map((b, i) =>
+          kalinan.some((k) => k.grup === b.grup && k.ad === b.ad) ? -1 : i,
+        )
+        .filter((i) => i >= 0),
+    );
+  };
   const satirSayisi = kayitlilar.length;
   for (let i = 0; i < satirSayisi; i++) {
     const a = kayitlilar[i];
@@ -129,12 +196,21 @@ export async function sablonIndir(akademi: AkademiDonemi, adaylar: AdayEgitmen[]
     }
   }
 
-  // Puan hücreleri 0–100 arası sayı; genel sonuç GEÇTİ / KALDI listesinden seçilir.
+  // Puan hücreleri 0–100 arası sayı; daha önce geçilen dersler gri.
   const sonSatir = 2 + satirSayisi;
   const harf = (n: number) => ws.getColumn(n).letter;
-  const puanAraligi = `${harf(KIMLIK_KOLONLARI.length + 1)}3:${harf(toplamKolon - 1)}${sonSatir}`;
+  const puanAraligi = `${harf(KIMLIK_KOLONLARI.length + 1)}3:${harf(toplamKolon)}${sonSatir}`;
   for (let r = 3; r <= sonSatir; r++) {
-    for (let c = KIMLIK_KOLONLARI.length + 1; c < toplamKolon; c++) {
+    const gecilen = gecilenler(kayitlilar[r - 3]);
+    for (let c = KIMLIK_KOLONLARI.length + 1; c <= toplamKolon; c++) {
+      if (gecilen.has(c - KIMLIK_KOLONLARI.length - 1)) {
+        ws.getRow(r).getCell(c).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFE4E4E7" },
+        };
+        continue;
+      }
       ws.getRow(r).getCell(c).dataValidation = {
         type: "whole",
         operator: "between",
@@ -144,13 +220,6 @@ export async function sablonIndir(akademi: AkademiDonemi, adaylar: AdayEgitmen[]
       };
       ws.getRow(r).getCell(c).alignment = { horizontal: "center" };
     }
-    ws.getRow(r).getCell(toplamKolon).dataValidation = {
-      type: "list",
-      formulae: ['"GEÇTİ,KALDI"'],
-      showErrorMessage: true,
-      error: "GEÇTİ veya KALDI seçin.",
-    };
-    ws.getRow(r).getCell(toplamKolon).alignment = { horizontal: "center" };
   }
   // 70 altı kırmızı, 70 ve üstü yeşil (akademi ekibinin mevcut Excel'indeki gibi).
   ws.addConditionalFormatting({
@@ -162,7 +231,11 @@ export async function sablonIndir(akademi: AkademiDonemi, adaylar: AdayEgitmen[]
         formulae: [GECME_PUANI],
         priority: 1,
         style: {
-          fill: { type: "pattern", pattern: "solid", bgColor: { argb: "FFF8D0D4" } },
+          fill: {
+            type: "pattern",
+            pattern: "solid",
+            bgColor: { argb: "FFF8D0D4" },
+          },
           font: { color: { argb: "FF9C0006" } },
         },
       },
@@ -172,7 +245,11 @@ export async function sablonIndir(akademi: AkademiDonemi, adaylar: AdayEgitmen[]
         formulae: [GECME_PUANI, 100],
         priority: 2,
         style: {
-          fill: { type: "pattern", pattern: "solid", bgColor: { argb: "FFD3F2D6" } },
+          fill: {
+            type: "pattern",
+            pattern: "solid",
+            bgColor: { argb: "FFD3F2D6" },
+          },
           font: { color: { argb: "FF006100" } },
         },
       },
@@ -181,15 +258,27 @@ export async function sablonIndir(akademi: AkademiDonemi, adaylar: AdayEgitmen[]
 
   const veri = await wb.xlsx.writeBuffer();
   const ad = akademi.ad.replace(/[\s/]+/g, "-");
-  dosyaIndir(veri as ArrayBuffer, `akademi-sinav-sonucu-sablonu-${ad}.xlsx`);
+  dosyaIndir(
+    veri as ArrayBuffer,
+    `akademi-sinav-sonucu-sablonu-${ad}-${sinavNo}-sinav.xlsx`,
+  );
 }
 
-export type YuklemeHatasi = { satir: number; egitmenId: string; adSoyad: string; sebep: string };
+export type YuklemeHatasi = {
+  satir: number;
+  egitmenId: string;
+  adSoyad: string;
+  sebep: string;
+};
 
 function hucreMetni(v: unknown): string {
   if (v === null || v === undefined) return "";
   if (typeof v === "object") {
-    const o = v as { result?: unknown; richText?: { text: string }[]; text?: string };
+    const o = v as {
+      result?: unknown;
+      richText?: { text: string }[];
+      text?: string;
+    };
     if (o.result !== undefined) return hucreMetni(o.result);
     if (o.richText) return o.richText.map((t) => t.text).join("");
     if (o.text !== undefined) return String(o.text);
@@ -206,7 +295,9 @@ export async function sinavExceliniOku(
   akademi: AkademiDonemi,
   adaylar: AdayEgitmen[],
   yukleyen: string,
-  tarih: string
+  tarih: string,
+  sinavNo: 1 | 2 | 3 = 1,
+  oncekiSonuclar: AkademiSinavSonucu[] = [],
 ): Promise<{
   sonuclar: Omit<AkademiSinavSonucu, "id">[];
   hatalar: YuklemeHatasi[];
@@ -216,7 +307,12 @@ export async function sinavExceliniOku(
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(await dosya.arrayBuffer());
   const ws = wb.worksheets[0];
-  if (!ws) return { sonuclar: [], hatalar: [], genelHata: "Excel'de sayfa bulunamadı." };
+  if (!ws)
+    return {
+      sonuclar: [],
+      hatalar: [],
+      genelHata: "Excel'de sayfa bulunamadı.",
+    };
 
   const kolonSayisi = ws.columnCount;
   const ust = (c: number) => buyuk(hucreMetni(ws.getRow(1).getCell(c).value));
@@ -242,9 +338,7 @@ export async function sinavExceliniOku(
       genelHata: `"EĞİTMEN ID" kolonu bulunamadı. Lütfen Themis'ten indirilen şablonu kullanın.`,
     };
   }
-  if (!genelKolon) {
-    return { sonuclar: [], hatalar: [], genelHata: `"${GENEL_SONUC_GRUBU}" kolonu bulunamadı.` };
-  }
+  // Genel sonuç kolonu eski şablonlarda olabilir; okunmaz, Fitness derslerinden hesaplanır.
 
   const sonuclar: Omit<AkademiSinavSonucu, "id">[] = [];
   const hatalar: YuklemeHatasi[] = [];
@@ -253,13 +347,15 @@ export async function sinavExceliniOku(
     const row = ws.getRow(r);
     const egitmenId = hucreMetni(row.getCell(idKolonu).value);
     const adSoyad = adKolonu ? hucreMetni(row.getCell(adKolonu).value) : "";
-    const genelHam = buyuk(hucreMetni(row.getCell(genelKolon).value));
-    const puanHam = puanKolonlari.map((p) => hucreMetni(row.getCell(p.kolon).value));
-    // Puanı ve genel sonucu girilmemiş satırlar (şablonun doldurulmamış kısmı, önceden
-    // doldurulmuş kimlik bilgileri olsa bile) hata sayılmaz, atlanır.
-    if (!genelHam && puanHam.every((p) => !p)) continue;
+    const puanHam = puanKolonlari.map((p) =>
+      hucreMetni(row.getCell(p.kolon).value),
+    );
+    // Puanı girilmemiş satırlar (şablonun doldurulmamış kısmı, önceden doldurulmuş kimlik
+    // bilgileri olsa bile) hata sayılmaz, atlanır.
+    if (puanHam.every((p) => !p)) continue;
 
-    const hata = (sebep: string) => hatalar.push({ satir: r, egitmenId, adSoyad, sebep });
+    const hata = (sebep: string) =>
+      hatalar.push({ satir: r, egitmenId, adSoyad, sebep });
     if (!egitmenId) {
       hata("Eğitmen ID boş");
       continue;
@@ -274,24 +370,50 @@ export async function sinavExceliniOku(
       hata(`Eğitmen ${akademi.ad} akademisine kayıtlı değil`);
       continue;
     }
-    if (akademi.yoklama?.[aday.id] === "Gelmedi") {
-      hata("Eğitmen akademiye katılmadı (yoklamada gelmedi)");
+    if (sozlesmesiKapandiMi(aday, akademi)) {
+      hata("Eğitmenin akademi sözleşmesi devamsızlık nedeniyle kapatıldı");
       continue;
     }
     if (gorulenIdler.has(egitmenId)) {
       hata("Aynı Eğitmen ID dosyada birden fazla kez var");
       continue;
     }
-    if (genelHam !== "GEÇTİ" && genelHam !== "KALDI") {
-      hata("Genel sonuç GEÇTİ veya KALDI olmalı");
+    // 2. / 3. sınav: yalnızca önceki sınavda kalan ve hakkı olan, yalnızca kalınan derslerden.
+    const nihai = akademiNihaisi(
+      akademiDenemeleri(oncekiSonuclar, aday.id, akademi.id),
+    );
+    if (sinavNo > 1 && nihai.sonrakiSinavNo !== sinavNo) {
+      hata(
+        nihai.genelSonuc && !nihai.kalinanDersler.length
+          ? "Eğitmen tüm derslerden geçti"
+          : `Eğitmenin ${sinavNo}. sınav hakkı yok (önceki sınav sonucu girilmemiş ya da hakkı doldu)`,
+      );
       continue;
     }
-    const puanlar = puanHam.map((p) => (p === "" ? null : Number(p.replace(",", "."))));
+    const gecilenDers = puanKolonlari.find(
+      (p, i) =>
+        sinavNo > 1 &&
+        puanHam[i] !== "" &&
+        !nihai.kalinanDersler.some(
+          (k) => k.grup === p.baslik.grup && k.ad === p.baslik.ad,
+        ),
+    );
+    if (gecilenDers) {
+      hata(
+        `"${gecilenDers.baslik.ad}" dersinden daha önce geçti; yalnızca kalınan derslere girilir`,
+      );
+      continue;
+    }
+    const puanlar = puanHam.map((p) =>
+      p === "" ? null : Number(p.replace(",", ".")),
+    );
     const hataliIndeks = puanlar.findIndex(
-      (p) => p !== null && (Number.isNaN(p) || p < 0 || p > 100)
+      (p) => p !== null && (Number.isNaN(p) || p < 0 || p > 100),
     );
     if (hataliIndeks >= 0) {
-      hata(`"${puanKolonlari[hataliIndeks].baslik.ad}" puanı 0–100 arasında bir sayı olmalı`);
+      hata(
+        `"${puanKolonlari[hataliIndeks].baslik.ad}" puanı 0–100 arasında bir sayı olmalı`,
+      );
       continue;
     }
     gorulenIdler.add(egitmenId);
@@ -299,9 +421,12 @@ export async function sinavExceliniOku(
       egitmenId: aday.id,
       akademiDonemiId: akademi.id,
       basliklar: puanKolonlari.map((p) => p.baslik),
+      sinavNo,
       puanlar,
-      genelSonuc: genelHam === "GEÇTİ" ? "Geçti" : "Kaldı",
-      genelSonucBasligi: alt(genelKolon) || VARSAYILAN_GENEL_SONUC_BASLIGI,
+      // Context'te tüm denemelerden yeniden hesaplanır.
+      genelSonuc: "Kaldı",
+      genelSonucBasligi:
+        (genelKolon && alt(genelKolon)) || VARSAYILAN_GENEL_SONUC_BASLIGI,
       yuklemeTarihi: tarih,
       yukleyen,
     });

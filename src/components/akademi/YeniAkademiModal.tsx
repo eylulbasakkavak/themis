@@ -23,12 +23,22 @@ export function YeniAkademiModal({ onClose }: { onClose: () => void }) {
   const [baslangicTarihi, setBaslangicTarihi] = useState("");
   const [kontenjan, setKontenjan] = useState("");
 
-  const ad = tip && Number(donemNo) > 0 ? akademiAdiOlustur(tip, Number(donemNo)) : "";
+  const ad =
+    tip && Number(donemNo) > 0 ? akademiAdiOlustur(tip, Number(donemNo)) : "";
   const adCakisiyor = !!ad && donemler.some((d) => d.ad === ad);
 
-  // Bitiş tarihi başlangıç ve tipe göre otomatik hesaplanır (PRD 7.1).
-  const baslangic = baslangicTarihi ? inputTarihindenCevir(baslangicTarihi) : "";
-  const bitisTarihi = tip && baslangic ? bitisTarihiHesapla(baslangic, tip) : "";
+  // Bitiş tarihi başlangıç ve tipe göre otomatik önerilir (PRD 7.1); kullanıcı değiştirebilir.
+  const [bitisElle, setBitisElle] = useState<string | null>(null);
+  const baslangic = baslangicTarihi
+    ? inputTarihindenCevir(baslangicTarihi)
+    : "";
+  const otomatikBitis =
+    tip && baslangic ? bitisTarihiHesapla(baslangic, tip) : "";
+  const otomatikBitisInput = otomatikBitis.split(".").reverse().join("-");
+  const bitisInput = bitisElle ?? otomatikBitisInput;
+  const bitisTarihi = bitisInput ? inputTarihindenCevir(bitisInput) : "";
+  const bitisGecerli =
+    !bitisInput || !baslangicTarihi || bitisInput >= baslangicTarihi;
 
   const zorunlularTamam =
     !!ad &&
@@ -36,6 +46,7 @@ export function YeniAkademiModal({ onClose }: { onClose: () => void }) {
     !!tip &&
     !!baslangicTarihi &&
     !!bitisTarihi &&
+    bitisGecerli &&
     !!kontenjan &&
     Number(kontenjan) > 0;
 
@@ -56,8 +67,13 @@ export function YeniAkademiModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl">
         <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-zinc-900">Yeni Akademi Dönemi</h2>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100">
+          <h2 className="text-base font-semibold text-zinc-900">
+            Yeni Akademi Dönemi
+          </h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -75,6 +91,7 @@ export function YeniAkademiModal({ onClose }: { onClose: () => void }) {
                   onClick={() => {
                     setTip(t);
                     setDonemNo(String(sonrakiDonemNo(donemler, t)));
+                    setBitisElle(null);
                   }}
                   className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
                     tip === t
@@ -82,7 +99,9 @@ export function YeniAkademiModal({ onClose }: { onClose: () => void }) {
                       : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
                   }`}
                 >
-                  {t.startsWith("Standart") ? "Standart (4 Hafta)" : "Kısa Dönem (1 Hafta)"}
+                  {t.startsWith("Standart")
+                    ? "Standart (4 Hafta)"
+                    : "Kısa Dönem (1 Hafta)"}
                 </button>
               ))}
             </div>
@@ -102,7 +121,9 @@ export function YeniAkademiModal({ onClose }: { onClose: () => void }) {
               className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-brand disabled:bg-zinc-50"
             />
             {ad && (
-              <p className={`mt-1 text-xs ${adCakisiyor ? "text-rose-500" : "text-zinc-500"}`}>
+              <p
+                className={`mt-1 text-xs ${adCakisiyor ? "text-rose-500" : "text-zinc-500"}`}
+              >
                 {adCakisiyor ? `"${ad}" zaten tanımlı.` : `Akademi adı: ${ad}`}
               </p>
             )}
@@ -116,15 +137,35 @@ export function YeniAkademiModal({ onClose }: { onClose: () => void }) {
               <input
                 type="date"
                 value={baslangicTarihi}
-                onChange={(e) => setBaslangicTarihi(e.target.value)}
+                onChange={(e) => {
+                  setBaslangicTarihi(e.target.value);
+                  setBitisElle(null);
+                }}
                 className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-brand"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-600">Bitiş Tarihi</label>
-              <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-                {bitisTarihi || <span className="text-zinc-400">Otomatik hesaplanır</span>}
-              </p>
+              <label className="mb-1 block text-sm font-medium text-zinc-600">
+                Bitiş Tarihi
+              </label>
+              {/* Tipe göre otomatik gelir; tıklayınca takvimden değiştirilebilir. */}
+              <input
+                type="date"
+                value={bitisInput}
+                min={baslangicTarihi || undefined}
+                disabled={!baslangicTarihi}
+                onChange={(e) => setBitisElle(e.target.value || null)}
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-brand disabled:bg-zinc-50 disabled:text-zinc-400"
+              />
+              {bitisElle && bitisElle !== otomatikBitisInput && (
+                <button
+                  type="button"
+                  onClick={() => setBitisElle(null)}
+                  className="mt-1 text-xs font-medium text-zinc-500 hover:underline"
+                >
+                  Otomatik tarihe dön ({otomatikBitis})
+                </button>
+              )}
             </div>
           </div>
 
@@ -142,9 +183,9 @@ export function YeniAkademiModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <p className="text-xs text-zinc-400">
-            Şu anda {donemler.length} akademi dönemi tanımlı. Yeni dönem, KM/KMY&apos;nin Akademi
-            Eğitimine Davet formundaki &quot;Hangi akademiye dahil edilecek?&quot; seçeneklerinde
-            hemen görünür.
+            Şu anda {donemler.length} akademi dönemi tanımlı. Yeni dönem,
+            KM/KMY&apos;nin Akademi Eğitimine Davet formundaki &quot;Hangi
+            akademiye dahil edilecek?&quot; seçeneklerinde hemen görünür.
           </p>
         </div>
 

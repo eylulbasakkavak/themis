@@ -1,5 +1,10 @@
 import type { Tone } from "./status";
-import type { AdayEgitmen, AkademiDonemi, AkademiTipi } from "./types";
+import type {
+  AdayEgitmen,
+  AkademiDonemi,
+  AkademiTipi,
+  YoklamaDurumu,
+} from "./types";
 
 /** "DD.MM.YYYY" metnini Date'e çevirir. */
 export function tarihCoz(tarih: string): Date | null {
@@ -36,7 +41,10 @@ export function kisaAkademiMi(tip: AkademiTipi): boolean {
  * Bitiş tarihi başlangıç ve tipe göre otomatik hesaplanır (PRD 7.1): Standart 4 hafta,
  * Kısa Dönem 1 hafta. Akademi hafta içi yürüdüğü için son haftanın cuması bitiş günüdür.
  */
-export function bitisTarihiHesapla(baslangicTarihi: string, tip: AkademiTipi): string {
+export function bitisTarihiHesapla(
+  baslangicTarihi: string,
+  tip: AkademiTipi,
+): string {
   const d = tarihCoz(baslangicTarihi);
   if (!d) return "";
   const hafta = kisaAkademiMi(tip) ? 1 : 4;
@@ -46,11 +54,58 @@ export function bitisTarihiHesapla(baslangicTarihi: string, tip: AkademiTipi): s
 
 export const kayitliSayisi = (d: AkademiDonemi) => d.kayitlilar.length;
 export const yoklamaAlindiMi = (d: AkademiDonemi) => !!d.yoklama;
+/**
+ * Katılan: yoklaması alınan günlerden en az birine gelen. Gelmeyen: yoklaması alınan günlerin
+ * hiçbirine gelmeyen (arada devamsızlık yapan gelmeyen sayılmaz).
+ */
 export const katilanSayisi = (d: AkademiDonemi) =>
-  Object.values(d.yoklama ?? {}).filter((y) => y === "Geldi").length;
+  d.kayitlilar.filter((id) => devamDurumu(d, id).geldi > 0).length;
 export const gelmeyenSayisi = (d: AkademiDonemi) =>
-  Object.values(d.yoklama ?? {}).filter((y) => y === "Gelmedi").length;
-export const kontenjanDoluMu = (d: AkademiDonemi) => kayitliSayisi(d) >= d.kontenjan;
+  d.kayitlilar.filter((id) => {
+    const { geldi, alinan } = devamDurumu(d, id);
+    return alinan > 0 && geldi === 0;
+  }).length;
+export const kontenjanDoluMu = (d: AkademiDonemi) =>
+  kayitliSayisi(d) >= d.kontenjan;
+
+/** Akademinin eğitim günleri: başlangıç–bitiş arasındaki hafta içi günler ("DD.MM.YYYY"). */
+export function egitimGunleri(d: AkademiDonemi): string[] {
+  const bas = tarihCoz(d.baslangicTarihi);
+  const son = tarihCoz(d.bitisTarihi);
+  if (!bas || !son) return [];
+  const gunler: string[] = [];
+  for (const g = new Date(bas); g <= son; g.setDate(g.getDate() + 1)) {
+    if (g.getDay() !== 0 && g.getDay() !== 6) gunler.push(tarihYaz(g));
+  }
+  return gunler;
+}
+
+/** Bir eğitim gününün yoklaması: ilk gün `yoklama`, sonraki günler `gunlukYoklamalar`. */
+export function gununYoklamasi(
+  d: AkademiDonemi,
+  tarih: string,
+): Record<string, YoklamaDurumu> | undefined {
+  if (tarih === egitimGunleri(d)[0]) return d.yoklama;
+  return d.gunlukYoklamalar?.find((g) => g.tarih === tarih)?.yoklama;
+}
+
+/** Bugüne kadar gelinmiş, yoklaması alınabilecek eğitim günleri. */
+export const gecmisEgitimGunleri = (d: AkademiDonemi) =>
+  egitimGunleri(d).filter((g) => (tarihCoz(g) ?? bugun()) <= bugun());
+
+/** Adayın devamı: yoklaması alınan günlerden kaçına geldiği. */
+export function devamDurumu(
+  d: AkademiDonemi,
+  adayId: string,
+): { geldi: number; alinan: number } {
+  const kayitlar = egitimGunleri(d)
+    .map((g) => gununYoklamasi(d, g)?.[adayId])
+    .filter((y): y is YoklamaDurumu => !!y);
+  return {
+    geldi: kayitlar.filter((y) => y === "Geldi").length,
+    alinan: kayitlar.length,
+  };
+}
 
 /** Akademinin ilk günü geldiyse yoklama alınabilir (PRD 8). */
 export function yoklamaAlinabilirMi(d: AkademiDonemi): boolean {
@@ -65,14 +120,27 @@ export function yoklamaAlinabilirMi(d: AkademiDonemi): boolean {
 }
 
 /** Doluluk: yoklamadan önce "Kayıtlı / Kontenjan", yoklamadan sonra "Katılan / Kayıtlı" (PRD 8.1). */
-export function doluluk(d: AkademiDonemi): { etiket: string; pay: number; payda: number } {
+export function doluluk(d: AkademiDonemi): {
+  etiket: string;
+  pay: number;
+  payda: number;
+} {
   return yoklamaAlindiMi(d)
-    ? { etiket: "Katılan / Kayıtlı", pay: katilanSayisi(d), payda: kayitliSayisi(d) }
-    : { etiket: "Kayıtlı / Kontenjan", pay: kayitliSayisi(d), payda: d.kontenjan };
+    ? {
+        etiket: "Katılan / Kayıtlı",
+        pay: katilanSayisi(d),
+        payda: kayitliSayisi(d),
+      }
+    : {
+        etiket: "Kayıtlı / Kontenjan",
+        pay: kayitliSayisi(d),
+        payda: d.kontenjan,
+      };
 }
 
 /** Akademiye henüz aday kaydedilmemişse düzenlenebilir veya iptal edilebilir (PRD 7.1). */
-export const duzenlenebilirMi = (d: AkademiDonemi) => !d.iptal && d.kayitlilar.length === 0;
+export const duzenlenebilirMi = (d: AkademiDonemi) =>
+  !d.iptal && d.kayitlilar.length === 0;
 
 export function akademiDurumu(d: AkademiDonemi): { label: string; tone: Tone } {
   if (d.iptal) return { label: "İptal Edildi", tone: "gray" };
@@ -80,7 +148,8 @@ export function akademiDurumu(d: AkademiDonemi): { label: string; tone: Tone } {
   const bitis = tarihCoz(d.bitisTarihi);
   const b = bugun();
   if (bitis && b > bitis) return { label: "Tamamlandı", tone: "purple" };
-  if (baslangic && b >= baslangic) return { label: "Devam Ediyor", tone: "blue" };
+  if (baslangic && b >= baslangic)
+    return { label: "Devam Ediyor", tone: "blue" };
   if (kontenjanDoluMu(d)) return { label: "Kontenjan Dolu", tone: "orange" };
   return { label: "Kayıt Açık", tone: "green" };
 }
@@ -91,7 +160,10 @@ export function akademiAdiOlustur(tip: AkademiTipi, donemNo: number): string {
 }
 
 /** Dönem numaraları akademi tipine göre ayrı ilerler; bu tipteki en büyük numaranın bir fazlası. */
-export function sonrakiDonemNo(donemler: AkademiDonemi[], tip: AkademiTipi): number {
+export function sonrakiDonemNo(
+  donemler: AkademiDonemi[],
+  tip: AkademiTipi,
+): number {
   const numaralar = donemler
     .filter((d) => d.tip === tip)
     .map((d) => Number(d.ad.match(/Dönem (\d+)$/)?.[1] ?? 0));
@@ -114,7 +186,7 @@ export function akademiDavetiOnayKaydi(akademiAdi: string | undefined) {
 export function akademiAsamasi(
   a: AdayEgitmen,
   donem: AkademiDonemi | undefined,
-  sinavSonucu: "Geçti" | "Kaldı" | undefined
+  sinavSonucu: "Geçti" | "Kaldı" | undefined,
 ): { label: string; tone: Tone } {
   if (a.surecDurumu === "akademiyi_tamamladi") {
     return { label: "Eğitmenliğe Geçişe Hazır", tone: "green" };
@@ -122,7 +194,8 @@ export function akademiAsamasi(
   if (sinavSonucu === "Kaldı") return { label: "Sınavdan Kaldı", tone: "red" };
   const baslangic = donem && tarihCoz(donem.baslangicTarihi);
   const bitis = donem && tarihCoz(donem.bitisTarihi);
-  if (bitis && bugun() > bitis) return { label: "Sınav Sonucu Bekleniyor", tone: "amber" };
+  if (bitis && bugun() > bitis)
+    return { label: "Sınav Sonucu Bekleniyor", tone: "amber" };
   if (baslangic && bugun() < baslangic) {
     return { label: "Akademi Başlangıcı Bekleniyor", tone: "gray" };
   }

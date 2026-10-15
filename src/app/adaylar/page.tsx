@@ -9,6 +9,7 @@ import { sonIslemSirasi } from "@/lib/sonIslem";
 import { useAdaylar } from "@/lib/AdaylarContext";
 import { akademiAsamasi } from "@/lib/akademi";
 import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
+import { akademiGenelSonucu } from "@/lib/akademiSinav";
 import { useAkademiSinavSonuclari } from "@/lib/AkademiSinavSonuclariContext";
 import {
   ikinciBelgeSetiOlustur,
@@ -103,6 +104,36 @@ type SekmeTanimi = {
 };
 
 const bos = <span className="text-zinc-400">—</span>;
+
+/**
+ * Diğer branşlar hücresi: yalnızca branş adı; birden fazlaysa ilki ve "+N". "+N"ye tıklayınca
+ * satır aşağı doğru genişler ve tüm branşlar alt alta görünür (satırın detay açması tetiklenmez).
+ */
+function DigerBranslarHucresi({ branslar }: { branslar: string[] }) {
+  const [acik, setAcik] = useState(false);
+  const goster = acik ? branslar : branslar.slice(0, 1);
+  return (
+    <div className="flex items-start gap-1.5 whitespace-nowrap text-zinc-600">
+      <div className="flex flex-col gap-1">
+        {goster.map((b) => (
+          <span key={b}>{b}</span>
+        ))}
+      </div>
+      {branslar.length > 1 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setAcik(!acik);
+          }}
+          className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[11px] font-semibold text-zinc-500 hover:bg-zinc-200"
+        >
+          {acik ? "−" : `+${branslar.length - 1}`}
+        </button>
+      )}
+    </div>
+  );
+}
 
 const themisIdKolonu: Kolon = {
   baslik: "Themis ID",
@@ -336,14 +367,31 @@ const SEKMELER: SekmeTanimi[] = [
         baslik: "Akademiye Katılım",
         hucre: (a, b) => {
           const k = b.akademiKatilimi(a);
-          return k ? <Badge label={k} tone={k === "Geldi" ? "green" : "red"} /> : bos;
+          // Kutusuz, yalnızca renkli yazı.
+          return k ? (
+            <span
+              className={`font-semibold ${k === "Geldi" ? "text-emerald-700" : "text-rose-600"}`}
+            >
+              {k}
+            </span>
+          ) : (
+            bos
+          );
         },
       },
       {
         baslik: "Akademi Sınav Sonucu",
         hucre: (a, b) => {
           const s = b.sinavSonucu(a);
-          return s ? <Badge label={s} tone={s === "Geçti" ? "green" : "red"} /> : bos;
+          return s ? (
+            <span
+              className={`font-semibold ${s === "Geçti" ? "text-emerald-700" : "text-rose-600"}`}
+            >
+              {s}
+            </span>
+          ) : (
+            bos
+          );
         },
       },
       {
@@ -392,7 +440,7 @@ const SEKMELER: SekmeTanimi[] = [
         hucre: (a) => {
           const s = fitnessSertifikasi(a);
           return s ? (
-            <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-semibold text-zinc-700">
+            <span className="whitespace-nowrap rounded-md bg-zinc-100 px-2 py-1 text-xs font-semibold text-zinc-700">
               {s.kademe}. Kademe
             </span>
           ) : (
@@ -404,13 +452,7 @@ const SEKMELER: SekmeTanimi[] = [
         baslik: "Diğer Branşlar",
         hucre: (a) => {
           const liste = digerBransSertifikalari(a);
-          return liste.length ? (
-            <span className="text-zinc-600">
-              {liste.map((s) => `${s.brans} ${s.kademe}. Kademe`).join(", ")}
-            </span>
-          ) : (
-            bos
-          );
+          return liste.length ? <DigerBranslarHucresi branslar={liste.map((s) => s.brans)} /> : bos;
         },
       },
       {
@@ -564,11 +606,9 @@ export default function AdaylarPage() {
   const { sinavSonuclari } = useAkademiSinavSonuclari();
   const hucreBaglami = useMemo<HucreBaglami>(() => {
     const donemi = (a: AdayEgitmen) => donemler.find((d) => d.id === a.akademiDonemiId);
+    // Genel sonuç tüm sınav denemelerinden (en fazla 3) hesaplanır.
     const sinavSonucu = (a: AdayEgitmen) =>
-      sinavSonuclari.find(
-        (s) =>
-          s.egitmenId === a.id && (!s.akademiDonemiId || s.akademiDonemiId === a.akademiDonemiId)
-      )?.genelSonuc;
+      akademiGenelSonucu(sinavSonuclari, a.id, a.akademiDonemiId);
     return {
       akademiAdi: (id) => donemler.find((d) => d.id === id)?.ad,
       akademiKatilimi: (a) => donemi(a)?.yoklama?.[a.id],

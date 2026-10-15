@@ -9,6 +9,17 @@ export const ISTIHDAM_TIPLERI = [
   "Instructor",
 ] as const satisfies readonly IstihdamTipi[];
 
+/** Kulüp atama / değişikliğinde seçilen kulüp tipi ve çalışma tipleri. */
+export const KULUP_TIPLERI = ["MACONE", "MACFIT"] as const;
+export type KulupTipi = (typeof KULUP_TIPLERI)[number];
+export const CALISMA_TIPLERI = [
+  "Yarı Zamanlı",
+  "Tam Zamanlı",
+  "Kiracı",
+  "Alt Kiracı",
+  "Grup Ders Eğitmeni",
+] as const satisfies readonly IstihdamTipi[];
+
 /**
  * Alt sözleşme tipleri (PRD 10.2). Sözleşme tipinden bağımsız, tek bir liste olarak seçilir.
  * PRD'ye göre bu liste Sistem Yöneticisi tarafından tanımlanır; tanım ekranı gelene kadar
@@ -39,15 +50,19 @@ export const SUREC_SONLANDIRMA_NEDENLERI = [
 export const FESIH_SEKLI_SECENEKLERI = [
   "Akademiyi Bitirmeden Ayrılma",
   "Eğitmen Tarafından Fesih",
-  "Kira Değişikliği",
-  "Kulüp Değişikliği",
   "Şirket Tarafından Fesih",
+  "Blacklist",
 ] as const;
 
 export const BEDENLER = ["XS", "S", "M", "L", "XL", "XXL"];
-export const AYAKKABI_NUMARALARI = Array.from({ length: 46 - 34 + 1 }, (_, i) => String(34 + i));
+export const AYAKKABI_NUMARALARI = Array.from({ length: 46 - 34 + 1 }, (_, i) =>
+  String(34 + i),
+);
 
-export const CINSIYET_SECENEKLERI: NonNullable<AdayEgitmen["cinsiyet"]>[] = ["Kadın", "Erkek"];
+export const CINSIYET_SECENEKLERI: NonNullable<AdayEgitmen["cinsiyet"]>[] = [
+  "Kadın",
+  "Erkek",
+];
 
 export const EGITIM_BILGISI_SECENEKLERI = [
   "Lise mezunu",
@@ -74,7 +89,13 @@ export const FEDERASYON_KADEME_SECENEKLERI = [
   "Denklik Bekliyor (Öğrenci)",
 ];
 
-export const TOPLAM_DENEYIM_SECENEKLERI = ["0–1 yıl", "1–3 yıl", "3–5 yıl", "5–10 yıl", "10+ yıl"];
+export const TOPLAM_DENEYIM_SECENEKLERI = [
+  "0–1 yıl",
+  "1–3 yıl",
+  "3–5 yıl",
+  "5–10 yıl",
+  "10+ yıl",
+];
 
 export const AKADEMI_MULAKAT_SECENEKLERI: AkademiTipi[] = [
   "Standart Akademi Mülakatı (4 Hafta)",
@@ -83,8 +104,30 @@ export const AKADEMI_MULAKAT_SECENEKLERI: AkademiTipi[] = [
 
 /** Bu iki seçenek "belgem yok" anlamına gelir — federasyon sertifikası yükleme alanı bunlarda gizlenir. */
 export const FEDERASYON_BELGESI_YOK_SECENEKLERI = new Set(
-  FEDERASYON_KADEME_SECENEKLERI.slice(0, 2)
+  FEDERASYON_KADEME_SECENEKLERI.slice(0, 2),
 );
+
+/**
+ * KM / KMY bu federasyon durumlarındaki adayın sürecini başlatamaz (en az 1. kademe belgesi
+ * gerekir). Bu durumlar yalnızca İK'da ve canlı eğitmenlerde (raporlama için) seçilebilir.
+ */
+export const KULUBE_KAPALI_FEDERASYON_DURUMLARI = [
+  "1. Kademe belgem yok. 1. Kademe temel eğitimim de yok.",
+  "1. Kademe belgem yok. 1. Kademe temel eğitimim var. 1. Kademe kursunu bekliyorum.",
+  "Denklik Bekliyor (Mezun)",
+  "Denklik Bekliyor (Öğrenci)",
+];
+
+/** Kullanıcıya göre federasyon durumu seçenekleri; mevcut değer listede kalır. */
+export function federasyonDurumuSecenekleri(
+  tumunuGoster: boolean,
+  mevcut?: string,
+): string[] {
+  if (tumunuGoster) return [...FEDERASYON_KADEME_SECENEKLERI];
+  return FEDERASYON_KADEME_SECENEKLERI.filter(
+    (s) => !KULUBE_KAPALI_FEDERASYON_DURUMLARI.includes(s) || s === mevcut,
+  );
+}
 
 /** "Federasyon Sertifikaları" listesinde seçilebilecek federasyon/disiplin tipleri. */
 export const FEDERASYON_TIPLERI = [

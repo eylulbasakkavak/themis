@@ -7,8 +7,10 @@ import {
   CINSIYET_SECENEKLERI,
   EGITIM_BILGISI_SECENEKLERI,
   FEDERASYON_KADEME_SECENEKLERI,
+  federasyonDurumuSecenekleri,
   TOPLAM_DENEYIM_SECENEKLERI,
 } from "@/lib/egitmenSecenekleri";
+import { ikYetkisiVarMi, useCurrentUser } from "@/lib/CurrentUserContext";
 import type { AdayEgitmen } from "@/lib/types";
 
 type Cinsiyet = NonNullable<AdayEgitmen["cinsiyet"]>;
@@ -24,6 +26,7 @@ export type MulakatFormuVerisi = {
   cinsiyet: Cinsiyet;
   egitimBilgisi: string;
   federasyonKademeDurumu: string;
+  federasyonBelgeTarihi: string;
   denklikMezuniyetTarihi: string;
   antrenorlukGecmisiVarMi: EvetHayir;
   grupDersiVerebilir: boolean;
@@ -40,14 +43,22 @@ const KISA_DONEM = "Kısa Dönem Akademi Mülakatı (1 Hafta)";
 // PRD'deki not: 5. soruya (antrenörlük geçmişi) "Hayır" yanıtı verildiyse ve 4. sorudaki
 // (Federasyon Kademe) ilk 2 seçenekten biri işaretlendiyse, "Kısa Dönem Akademi Mülakatı"
 // seçeneği çıkmamalı.
-const KISA_DONEM_GIZLENECEK_KADEMELER = new Set(FEDERASYON_KADEME_SECENEKLERI.slice(0, 2));
+const KISA_DONEM_GIZLENECEK_KADEMELER = new Set(
+  FEDERASYON_KADEME_SECENEKLERI.slice(0, 2),
+);
 
 const girdiSinifi =
   "w-full rounded-lg border border-zinc-200 px-3.5 py-2.5 text-base outline-none focus:border-zinc-400";
 const secimSinifi =
   "w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-base outline-none focus:border-zinc-400";
 
-function AlanEtiket({ children, zorunlu }: { children: string; zorunlu?: boolean }) {
+function AlanEtiket({
+  children,
+  zorunlu,
+}: {
+  children: string;
+  zorunlu?: boolean;
+}) {
   return (
     <label className="mb-1.5 block text-sm font-medium text-zinc-600">
       {children}
@@ -80,36 +91,55 @@ export function MulakatFormuModal({
   onKaydet: (veri: MulakatFormuVerisi) => void;
 }) {
   const otonom = aday.mulakatiYapanRol === "İK";
-  const [duzenlemeModu, setDuzenlemeModu] = useState(!saltOkunur && !dahaOnceDolduruldu);
+  const { currentUser } = useCurrentUser();
+  // KM / KMY en az "1. Kademe belgem var" ile süreci başlatabilir; diğer durumlar İK'da.
+  const federasyonSecenekleri = federasyonDurumuSecenekleri(
+    ikYetkisiVarMi(currentUser.rol),
+    aday.federasyonKademeDurumu,
+  );
+  const [duzenlemeModu, setDuzenlemeModu] = useState(
+    !saltOkunur && !dahaOnceDolduruldu,
+  );
 
   const [kulup, setKulup] = useState(aday.formKulup ?? aday.kulup);
-  const [tarih, setTarih] = useState(aday.formTarih ?? new Date().toLocaleDateString("tr-TR"));
-  const [adSoyad, setAdSoyad] = useState(aday.formAdSoyad ?? `${aday.ad} ${aday.soyad}`);
+  const [tarih, setTarih] = useState(
+    aday.formTarih ?? new Date().toLocaleDateString("tr-TR"),
+  );
+  const [adSoyad, setAdSoyad] = useState(
+    aday.formAdSoyad ?? `${aday.ad} ${aday.soyad}`,
+  );
   const [tcKimlikNo, setTcKimlikNo] = useState(aday.tcKimlikNo ?? "");
   const [mulakatiYapan, setMulakatiYapan] = useState(
-    aday.formMulakatiYapan ?? aday.mulakatiYapan ?? ""
+    aday.formMulakatiYapan ?? aday.mulakatiYapan ?? "",
   );
   const [cinsiyet, setCinsiyet] = useState<Cinsiyet | "">(aday.cinsiyet ?? "");
   const [egitimBilgisi, setEgitimBilgisi] = useState(aday.egitimBilgisi ?? "");
   const [federasyonKademeDurumu, setFederasyonKademeDurumu] = useState(
-    aday.federasyonKademeDurumu ?? ""
+    aday.federasyonKademeDurumu ?? "",
+  );
+  const [federasyonBelgeTarihi, setFederasyonBelgeTarihi] = useState(
+    aday.federasyonBelgeTarihi ?? "",
   );
   const [denklikMezuniyetTarihi, setDenklikMezuniyetTarihi] = useState(
-    aday.denklikMezuniyetTarihi ?? ""
+    aday.denklikMezuniyetTarihi ?? "",
   );
-  const [antrenorlukGecmisiVarMi, setAntrenorlukGecmisiVarMi] = useState<EvetHayir | "">(
-    aday.antrenorlukGecmisiVarMi ?? ""
+  const [antrenorlukGecmisiVarMi, setAntrenorlukGecmisiVarMi] = useState<
+    EvetHayir | ""
+  >(aday.antrenorlukGecmisiVarMi ?? "");
+  const [grupDersiVerebilir, setGrupDersiVerebilir] = useState(
+    aday.grupDersiVerebilir ?? false,
   );
-  const [grupDersiVerebilir, setGrupDersiVerebilir] = useState(aday.grupDersiVerebilir ?? false);
   const [toplamDeneyim, setToplamDeneyim] = useState(aday.toplamDeneyim ?? "");
   const [sonGorevYeri, setSonGorevYeri] = useState(aday.sonGorevYeri ?? "");
   const [antrenorlukGecmisiDetay, setAntrenorlukGecmisiDetay] = useState(
-    aday.antrenorlukGecmisiDetay ?? ""
+    aday.antrenorlukGecmisiDetay ?? "",
   );
-  const [akademiMulakatTipi, setAkademiMulakatTipi] = useState<AkademiMulakatTipi | "">(
-    aday.akademiMulakatTipi ?? ""
+  const [akademiMulakatTipi, setAkademiMulakatTipi] = useState<
+    AkademiMulakatTipi | ""
+  >(aday.akademiMulakatTipi ?? "");
+  const [degerlendirmeNotu, setDegerlendirmeNotu] = useState(
+    aday.mulakatDegerlendirmeNotu ?? "",
   );
-  const [degerlendirmeNotu, setDegerlendirmeNotu] = useState(aday.mulakatDegerlendirmeNotu ?? "");
 
   const antrenorlukVar = antrenorlukGecmisiVarMi === "Evet";
   // Kısa Dönem Akademi, ancak "En az 2 grup dersi verebilme becerisi" işaretliyse seçilebilir;
@@ -123,9 +153,13 @@ export function MulakatFormuModal({
     : AKADEMI_MULAKAT_SECENEKLERI;
   // Seçili Kısa Dönem, koşulu bozulunca geçersiz sayılır ve yeniden seçim istenir.
   const gecerliAkademiTipi =
-    akademiMulakatTipi === KISA_DONEM && kisaDonemGizli ? "" : akademiMulakatTipi;
+    akademiMulakatTipi === KISA_DONEM && kisaDonemGizli
+      ? ""
+      : akademiMulakatTipi;
 
   const denklikOgrenciSecili = federasyonKademeDurumu === DENKLIK_OGRENCI;
+  // "… Kademe belgem var" seçildiyse belgenin alındığı tarih sorulur.
+  const belgeVar = /Kademe belgem var/.test(federasyonKademeDurumu);
   const tcGecerli = /^\d{11}$/.test(tcKimlikNo.trim());
 
   const zorunlularTamam =
@@ -136,11 +170,18 @@ export function MulakatFormuModal({
     !!egitimBilgisi &&
     !!federasyonKademeDurumu &&
     (!denklikOgrenciSecili || !!denklikMezuniyetTarihi) &&
+    (!belgeVar || !!federasyonBelgeTarihi) &&
     !!antrenorlukGecmisiVarMi &&
     !!gecerliAkademiTipi;
 
   const kaydet = () => {
-    if (!zorunlularTamam || !cinsiyet || !antrenorlukGecmisiVarMi || !gecerliAkademiTipi) return;
+    if (
+      !zorunlularTamam ||
+      !cinsiyet ||
+      !antrenorlukGecmisiVarMi ||
+      !gecerliAkademiTipi
+    )
+      return;
     onKaydet({
       kulup,
       tarih,
@@ -150,6 +191,7 @@ export function MulakatFormuModal({
       cinsiyet,
       egitimBilgisi,
       federasyonKademeDurumu,
+      federasyonBelgeTarihi: belgeVar ? federasyonBelgeTarihi : "",
       denklikMezuniyetTarihi,
       antrenorlukGecmisiVarMi,
       // Antrenörlük geçmişi yoksa detay alanları kaydedilmez.
@@ -174,9 +216,14 @@ export function MulakatFormuModal({
         <div className="flex items-center justify-between border-b border-zinc-100 px-8 py-5">
           <div className="flex items-center gap-2">
             <FileSignature className="h-5 w-5 text-zinc-400" />
-            <h3 className="text-lg font-semibold text-zinc-900">Spor Eğitmeni Mülakat Formu</h3>
+            <h3 className="text-lg font-semibold text-zinc-900">
+              Spor Eğitmeni Mülakat Formu
+            </h3>
           </div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+          <button
+            onClick={onClose}
+            className="text-zinc-400 hover:text-zinc-600"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -184,7 +231,8 @@ export function MulakatFormuModal({
         <div className="flex flex-col gap-6 overflow-y-auto px-8 py-6">
           {otonom && (
             <p className="rounded-lg bg-zinc-50 px-4 py-2.5 text-sm text-zinc-500">
-              İK tarafından yapılan mülakatlarda bu form doldurulması zorunlu değildir.
+              İK tarafından yapılan mülakatlarda bu form doldurulması zorunlu
+              değildir.
             </p>
           )}
 
@@ -193,7 +241,12 @@ export function MulakatFormuModal({
               [
                 ["Kulüp", kulup, setKulup, false],
                 ["Tarih", tarih, setTarih, false],
-                ["Mülakatı Yapan (Ad Soyad)", mulakatiYapan, setMulakatiYapan, true],
+                [
+                  "Mülakatı Yapan (Ad Soyad)",
+                  mulakatiYapan,
+                  setMulakatiYapan,
+                  true,
+                ],
                 ["Adayın Adı Soyadı", adSoyad, setAdSoyad, true],
                 ["Adayın TC Kimlik No", tcKimlikNo, setTcKimlikNo, true],
               ] as const
@@ -204,16 +257,25 @@ export function MulakatFormuModal({
                   <input
                     value={deger}
                     onChange={(e) => setDeger(e.target.value)}
-                    inputMode={etiket === "Adayın TC Kimlik No" ? "numeric" : undefined}
-                    maxLength={etiket === "Adayın TC Kimlik No" ? 11 : undefined}
+                    inputMode={
+                      etiket === "Adayın TC Kimlik No" ? "numeric" : undefined
+                    }
+                    maxLength={
+                      etiket === "Adayın TC Kimlik No" ? 11 : undefined
+                    }
                     className={girdiSinifi}
                   />
                 ) : (
                   <Deger>{deger}</Deger>
                 )}
-                {duzenlemeModu && etiket === "Adayın TC Kimlik No" && tcKimlikNo && !tcGecerli && (
-                  <p className="mt-1 text-xs text-rose-600">TC Kimlik No 11 haneli olmalı.</p>
-                )}
+                {duzenlemeModu &&
+                  etiket === "Adayın TC Kimlik No" &&
+                  tcKimlikNo &&
+                  !tcGecerli && (
+                    <p className="mt-1 text-xs text-rose-600">
+                      TC Kimlik No 11 haneli olmalı.
+                    </p>
+                  )}
               </div>
             ))}
           </div>
@@ -270,7 +332,7 @@ export function MulakatFormuModal({
                 className={secimSinifi}
               >
                 <option value="">Seçiniz</option>
-                {FEDERASYON_KADEME_SECENEKLERI.map((s) => (
+                {federasyonSecenekleri.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
@@ -280,6 +342,24 @@ export function MulakatFormuModal({
               <Deger>{federasyonKademeDurumu}</Deger>
             )}
           </div>
+
+          {belgeVar && (
+            <div>
+              <AlanEtiket zorunlu>Belgenin Alındığı Tarih</AlanEtiket>
+              {duzenlemeModu ? (
+                <input
+                  type="date"
+                  value={federasyonBelgeTarihi}
+                  onChange={(e) => setFederasyonBelgeTarihi(e.target.value)}
+                  className={girdiSinifi}
+                />
+              ) : (
+                <Deger>
+                  {federasyonBelgeTarihi.split("-").reverse().join(".")}
+                </Deger>
+              )}
+            </div>
+          )}
 
           {denklikOgrenciSecili && (
             <div>
@@ -322,7 +402,9 @@ export function MulakatFormuModal({
 
           {antrenorlukVar && (
             <div className="flex flex-col gap-4 rounded-xl border border-zinc-200 p-4">
-              <div className="text-sm font-semibold text-zinc-800">Antrenörlük Geçmişi Detayı</div>
+              <div className="text-sm font-semibold text-zinc-800">
+                Antrenörlük Geçmişi Detayı
+              </div>
 
               <label
                 className={`flex items-start gap-3 rounded-lg border border-zinc-200 px-4 py-3 ${
@@ -397,7 +479,9 @@ export function MulakatFormuModal({
           )}
 
           <div>
-            <AlanEtiket zorunlu>Hangi akademi mülakatına yönlendiriyorsunuz?</AlanEtiket>
+            <AlanEtiket zorunlu>
+              Hangi akademi mülakatına yönlendiriyorsunuz?
+            </AlanEtiket>
             {duzenlemeModu ? (
               <div className="flex flex-wrap gap-2">
                 {gosterilecekAkademiSecenekleri.map((s) => (
@@ -424,7 +508,8 @@ export function MulakatFormuModal({
                   : !antrenorlukVar
                     ? "Antrenörlük geçmişi yok, grup dersi becerisi sorulmadı — "
                     : "En az 2 grup dersi verebilme becerisi işaretlenmedi — "}
-                bu adayda &quot;Kısa Dönem Akademi Mülakatı&quot; seçeneği gösterilmiyor.
+                bu adayda &quot;Kısa Dönem Akademi Mülakatı&quot; seçeneği
+                gösterilmiyor.
               </p>
             )}
           </div>
@@ -446,7 +531,8 @@ export function MulakatFormuModal({
 
           {saltOkunur ? (
             <p className="rounded-lg bg-zinc-50 px-4 py-2.5 text-sm text-zinc-500">
-              Canlı eğitmenlerde mülakat formu yalnızca görüntülenebilir, alanlar değiştirilemez.
+              Canlı eğitmenlerde mülakat formu yalnızca görüntülenebilir,
+              alanlar değiştirilemez.
             </p>
           ) : (
             !duzenlemeModu && (

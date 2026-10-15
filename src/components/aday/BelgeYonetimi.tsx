@@ -2,7 +2,16 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Eye, FileSignature, FileText, Lock, RotateCw, Send, Upload, X } from "lucide-react";
+import {
+  Eye,
+  FileSignature,
+  FileText,
+  Lock,
+  RotateCw,
+  Send,
+  Upload,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/Badge";
 import { BelgeIndirButonu } from "@/components/BelgeIndirButonu";
 import {
@@ -12,10 +21,17 @@ import {
   surecDurduruldu,
 } from "@/lib/belgeKurallari";
 import { useBildirimler } from "@/lib/BildirimlerContext";
-import { ikYetkisiVarMi, KULLANICILAR, useCurrentUser } from "@/lib/CurrentUserContext";
+import {
+  ikYetkisiVarMi,
+  KULLANICILAR,
+  useCurrentUser,
+} from "@/lib/CurrentUserContext";
 import { belgeDurumuBilgi } from "@/lib/status";
 import type { AdayEgitmen, Belge } from "@/lib/types";
-import { MulakatFormuModal, type MulakatFormuVerisi } from "./MulakatFormuModal";
+import {
+  MulakatFormuModal,
+  type MulakatFormuVerisi,
+} from "./MulakatFormuModal";
 
 const MULAKAT_FORMU_ADI = "Mülakat Formu";
 
@@ -30,10 +46,21 @@ function mulakatFormuSatirlari(a: AdayEgitmen): string[] {
     ["Cinsiyet", a.cinsiyet],
     ["Eğitim Bilgileri", a.egitimBilgisi],
     ["Federasyon Kademe Belge Durumu", a.federasyonKademeDurumu],
+    ...(a.federasyonBelgeTarihi
+      ? ([
+          [
+            "Belgenin Alındığı Tarih",
+            a.federasyonBelgeTarihi.split("-").reverse().join("."),
+          ],
+        ] as [string, string][])
+      : []),
     ["Antrenörlük Geçmişi", a.antrenorlukGecmisiVarMi],
     ...(a.antrenorlukGecmisiVarMi === "Evet"
       ? ([
-          ["En az 2 grup dersi verebilir", a.grupDersiVerebilir ? "Evet" : "Hayır"],
+          [
+            "En az 2 grup dersi verebilir",
+            a.grupDersiVerebilir ? "Evet" : "Hayır",
+          ],
           ["Toplam Deneyim", a.toplamDeneyim],
           ["Son Görev Yeri", a.sonGorevYeri],
           ["Deneyim Özeti", a.antrenorlukGecmisiDetay],
@@ -57,6 +84,7 @@ function BelgeGrubu({
   altBolum,
   araBolum,
   ozelSatir,
+  saltOkunur,
 }: {
   aday: AdayEgitmen;
   baslik: string;
@@ -69,6 +97,8 @@ function BelgeGrubu({
   altBolum?: ReactNode;
   araBolum?: ReactNode;
   ozelSatir?: (belge: Belge, index: number) => ReactNode | null;
+  // Yükle / Yeniden Yükle gizlenir; yüklenen belge görüntülenir ve indirilir.
+  saltOkunur?: boolean;
 }) {
   const [onizleme, setOnizleme] = useState<Belge | null>(null);
 
@@ -90,19 +120,26 @@ function BelgeGrubu({
           {belgeler.map((b, i) => {
             const durum = belgeDurumuBilgi[b.durum];
             return (
-              <div key={b.ad} className="flex items-center justify-between gap-3 px-4 py-3">
+              <div
+                key={b.ad}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
                 <div className="flex items-center gap-3">
                   <FileText className="h-4 w-4 text-zinc-400" />
                   <div>
-                    <div className="text-sm font-medium text-zinc-800">{b.ad}</div>
-                    {b.tarih && <div className="text-xs text-zinc-400">{b.tarih}</div>}
+                    <div className="text-sm font-medium text-zinc-800">
+                      {b.ad}
+                    </div>
+                    {b.tarih && (
+                      <div className="text-xs text-zinc-400">{b.tarih}</div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge label={durum.label} tone={durum.tone} />
                   {ozelSatir?.(b, i) ?? (
                     <>
-                      {b.durum === "yuklenmedi" && (
+                      {b.durum === "yuklenmedi" && !saltOkunur && (
                         <button
                           onClick={() => onYukle(i)}
                           className="flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
@@ -121,13 +158,15 @@ function BelgeGrubu({
                             <Eye className="h-3.5 w-3.5" />
                           </button>
                           <BelgeIndirButonu belge={b} aday={aday} />
-                          <button
-                            onClick={() => onYukle(i)}
-                            title="Yeniden Yükle"
-                            className="rounded-lg border border-zinc-200 p-1.5 text-zinc-500 hover:bg-zinc-50"
-                          >
-                            <RotateCw className="h-3.5 w-3.5" />
-                          </button>
+                          {!saltOkunur && (
+                            <button
+                              onClick={() => onYukle(i)}
+                              title="Yeniden Yükle"
+                              className="rounded-lg border border-zinc-200 p-1.5 text-zinc-500 hover:bg-zinc-50"
+                            >
+                              <RotateCw className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </>
                       )}
                     </>
@@ -153,7 +192,9 @@ function BelgeGrubu({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-900">{onizleme.ad}</h3>
+              <h3 className="text-sm font-semibold text-zinc-900">
+                {onizleme.ad}
+              </h3>
               <button
                 onClick={() => setOnizleme(null)}
                 className="text-zinc-400 hover:text-zinc-600"
@@ -174,6 +215,23 @@ function BelgeGrubu({
     </div>
   );
 }
+
+/** Canlı eğitmen olduktan sonra İK'nın Themis'e eklediği sözleşmeler. */
+export const CANLI_EGITMEN_SOZLESMELERI = [
+  "Bağımsız Eğitmen Sözleşmesi",
+  "Ticari Şart Formu",
+  "Muvafakatname",
+];
+
+/** Eğitmenin canlı eğitmen sözleşmeleri; kaydı olmayan belge "yüklenmedi" görünür. */
+const canliSozlesmeler = (a: AdayEgitmen): Belge[] =>
+  CANLI_EGITMEN_SOZLESMELERI.map(
+    (ad) =>
+      a.canliEgitmenSozlesmeleri?.find((b) => b.ad === ad) ?? {
+        ad,
+        durum: "yuklenmedi" as const,
+      },
+  );
 
 export function BelgeYonetimi({
   aday,
@@ -198,7 +256,9 @@ export function BelgeYonetimi({
   const ikinciTamam = belgeSetiTamamMi(aday.ikinciBelgeSeti);
   const ikinciOnaylanmis = ikinciBelgeSetiOnaylanmisMi(aday);
   const ikinciBeklemede =
-    aday.surecDurumu === "ik_onayi_bekliyor" && ilkOnaylanmis && !ikinciOnaylanmis;
+    aday.surecDurumu === "ik_onayi_bekliyor" &&
+    ilkOnaylanmis &&
+    !ikinciOnaylanmis;
   const ikinciGonderilebilir =
     !girmeYetkisiVar &&
     ilkOnaylanmis &&
@@ -209,7 +269,7 @@ export function BelgeYonetimi({
 
   const ilkYukle = (i: number) => {
     const yeniIlkSet = aday.ilkBelgeSeti.map((b, idx) =>
-      idx === i ? { ...b, durum: "yuklendi" as const, tarih: "Bugün" } : b
+      idx === i ? { ...b, durum: "yuklendi" as const, tarih: "Bugün" } : b,
     );
     const yeniSurecDurumu = belgeSetiTamamMi(yeniIlkSet)
       ? "ikinci_belge_seti_bekleniyor"
@@ -221,11 +281,15 @@ export function BelgeYonetimi({
     });
   };
 
-  const mulakatFormuBelge = aday.ilkBelgeSeti.find((b) => b.ad === MULAKAT_FORMU_ADI);
+  const mulakatFormuBelge = aday.ilkBelgeSeti.find(
+    (b) => b.ad === MULAKAT_FORMU_ADI,
+  );
 
   const mulakatFormuKaydet = (veri: MulakatFormuVerisi) => {
     const yeniIlkSet = aday.ilkBelgeSeti.map((b) =>
-      b.ad === MULAKAT_FORMU_ADI ? { ...b, durum: "yuklendi" as const, tarih: "Bugün" } : b
+      b.ad === MULAKAT_FORMU_ADI
+        ? { ...b, durum: "yuklendi" as const, tarih: "Bugün" }
+        : b,
     );
     const yeniSurecDurumu = belgeSetiTamamMi(yeniIlkSet)
       ? "ikinci_belge_seti_bekleniyor"
@@ -241,6 +305,7 @@ export function BelgeYonetimi({
       cinsiyet: veri.cinsiyet,
       egitimBilgisi: veri.egitimBilgisi,
       federasyonKademeDurumu: veri.federasyonKademeDurumu,
+      federasyonBelgeTarihi: veri.federasyonBelgeTarihi || undefined,
       denklikMezuniyetTarihi: veri.denklikMezuniyetTarihi || undefined,
       antrenorlukGecmisiVarMi: veri.antrenorlukGecmisiVarMi,
       antrenorlukGecmisiDetay: veri.antrenorlukGecmisiDetay || undefined,
@@ -275,11 +340,22 @@ export function BelgeYonetimi({
     });
   };
 
+  // Canlı eğitmen sözleşmelerini yalnızca İK / Sistem Yöneticisi yükler; onay adımı yoktur.
+  const canliEgitmenMi =
+    aday.surecDurumu === "egitmen" || aday.surecDurumu === "pasif";
+  const sozlesmeYukle = (i: number) =>
+    onAdayGuncelle?.({
+      ...aday,
+      canliEgitmenSozlesmeleri: canliSozlesmeler(aday).map((b, idx) =>
+        idx === i ? { ...b, durum: "yuklendi" as const, tarih: "Bugün" } : b,
+      ),
+    });
+
   const ikinciYukle = (i: number) =>
     ikinciSetiGuncelle({
       ...aday,
       ikinciBelgeSeti: aday.ikinciBelgeSeti.map((b, idx) =>
-        idx === i ? { ...b, durum: "yuklendi" as const, tarih: "Bugün" } : b
+        idx === i ? { ...b, durum: "yuklendi" as const, tarih: "Bugün" } : b,
       ),
     });
 
@@ -325,7 +401,11 @@ export function BelgeYonetimi({
                   : "Formu Doldur"}{" "}
               </button>{" "}
               {b.durum === "yuklendi" && (
-                <BelgeIndirButonu belge={b} aday={aday} ekSatirlar={mulakatFormuSatirlari(aday)} />
+                <BelgeIndirButonu
+                  belge={b}
+                  aday={aday}
+                  ekSatirlar={mulakatFormuSatirlari(aday)}
+                />
               )}{" "}
             </>
           ) : null
@@ -367,8 +447,8 @@ export function BelgeYonetimi({
             ikinciTamam &&
             !aday.dijitalOryantasyonTamamlandi ? (
             <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-              Tüm belgeler yüklendi. Dijital oryantasyon tamamlandı olarak işaretlenince set
-              tamamlanır.
+              Tüm belgeler yüklendi. Dijital oryantasyon tamamlandı olarak
+              işaretlenince set tamamlanır.
             </div>
           ) : ikinciBeklemede ? (
             <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
@@ -403,7 +483,8 @@ export function BelgeYonetimi({
                 </button>
                 {!aday.dijitalOryantasyonTamamlandi && (
                   <span className="text-xs text-amber-700">
-                    Göndermek için dijital oryantasyonu tamamlandı olarak işaretleyin.
+                    Göndermek için dijital oryantasyonu tamamlandı olarak
+                    işaretleyin.
                   </span>
                 )}
               </div>
@@ -411,6 +492,17 @@ export function BelgeYonetimi({
           ) : undefined
         }
       />
+
+      {canliEgitmenMi && (
+        <BelgeGrubu
+          aday={aday}
+          baslik="Eğitmen Belge Seti"
+          belgeler={canliSozlesmeler(aday)}
+          onYukle={sozlesmeYukle}
+          // KM/KMY yükleyemez; yüklenen belgeyi yalnızca görüntüler ve indirir.
+          saltOkunur={!girmeYetkisiVar}
+        />
+      )}
 
       {mulakatFormuAcik && (
         <MulakatFormuModal

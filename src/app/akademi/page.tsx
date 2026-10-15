@@ -64,19 +64,10 @@ export default function AkademiPage() {
 
   return (
     <div className="flex h-full flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-zinc-900">Akademi</h1>
-        <button
-          type="button"
-          onClick={() => setYeniAcik(true)}
-          className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-black"
-        >
-          <Plus className="h-4 w-4" />
-          Yeni Akademi Ekle
-        </button>
-      </div>
+      <h1 className="text-2xl font-bold text-zinc-900">Akademi</h1>
 
-      <div className="flex shrink-0 gap-2 border-b border-zinc-200">
+      {/* Sekmeler ve "Yeni Akademi Ekle" aynı satırda. */}
+      <div className="flex shrink-0 items-end gap-2 border-b border-zinc-200">
         {SEKMELER.map((s) => (
           <button
             key={s.deger}
@@ -90,6 +81,14 @@ export default function AkademiPage() {
             {s.label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setYeniAcik(true)}
+          className="mb-2 ml-auto flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-black"
+        >
+          <Plus className="h-4 w-4" />
+          Yeni Akademi Ekle
+        </button>
       </div>
 
       {sekme === "akademiler" && (

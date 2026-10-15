@@ -17,5 +17,8 @@ function zaman(tarih: string): number {
  */
 export function sonIslemSirasi(a: AdayEgitmen): number {
   if (a.sonIslemZamani) return a.sonIslemZamani;
-  return Math.max(zaman(a.basvuruTarihi), ...a.aksiyonGecmisi.map((k) => zaman(k.tarih)));
+  return Math.max(
+    zaman(a.basvuruTarihi),
+    ...a.aksiyonGecmisi.map((k) => zaman(k.tarih)),
+  );
 }

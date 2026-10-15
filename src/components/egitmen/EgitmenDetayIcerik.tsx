@@ -9,16 +9,29 @@ import {
   BEDENLER,
   CINSIYET_SECENEKLERI,
   EGITIM_BILGISI_SECENEKLERI,
-  FEDERASYON_KADEME_SECENEKLERI,
+  federasyonDurumuSecenekleri,
   ISTIHDAM_TIPLERI,
   telefonMaskele,
 } from "@/lib/egitmenSecenekleri";
-import { donemEtiketi, efektifLig, karneHaricSebebi, LIG_TONU } from "@/lib/karne";
+import {
+  donemEtiketi,
+  efektifLig,
+  karneHaricSebebi,
+  LIG_TONU,
+} from "@/lib/karne";
 import { useAkademiDonemleri } from "@/lib/AkademiDonemleriContext";
 import { useKarneler } from "@/lib/KarnelerContext";
 import { toneClasses } from "@/lib/status";
-import { fitnessSertifikasi, VIZE_DURUMU_BILGI, vizeDurumu } from "@/lib/sertifika";
+import {
+  fitnessSertifikasi,
+  VIZE_DURUMU_BILGI,
+  vizeDurumu,
+} from "@/lib/sertifika";
+import { ikYetkisiVarMi, useCurrentUser } from "@/lib/CurrentUserContext";
 import type { AdayEgitmen } from "@/lib/types";
+
+/** KM / KMY'nin seçebildiği sözleşme tipleri; diğerleri (Grup Ders Eğitmeni vb.) yalnızca İK'da. */
+const KULUP_SOZLESME_TIPLERI = ["Tam Zamanlı", "Yarı Zamanlı", "Kiracı"];
 
 function Bolum({
   baslik,
@@ -43,8 +56,12 @@ function Bolum({
 function Alan({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{label}</div>
-      <div className="mt-1 break-words text-sm font-semibold text-zinc-900">{children}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+        {label}
+      </div>
+      <div className="mt-1 break-words text-sm font-semibold text-zinc-900">
+        {children}
+      </div>
     </div>
   );
 }
@@ -66,7 +83,9 @@ function DuzenlenebilirMetin({
 }) {
   return (
     <div className="min-w-0">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{label}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+        {label}
+      </div>
       {duzenle ? (
         <input
           type={type}
@@ -75,7 +94,9 @@ function DuzenlenebilirMetin({
           className="mt-1 w-full rounded-lg border border-zinc-200 px-2.5 py-1.5 text-sm outline-none focus:border-brand"
         />
       ) : (
-        <p className="mt-1 text-sm font-semibold text-zinc-900">{goster ?? value ?? "—"}</p>
+        <p className="mt-1 text-sm font-semibold text-zinc-900">
+          {goster ?? value ?? "—"}
+        </p>
       )}
     </div>
   );
@@ -96,7 +117,9 @@ function DuzenlenebilirSecim({
 }) {
   return (
     <div className="min-w-0">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{label}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+        {label}
+      </div>
       {duzenle ? (
         <select
           value={value ?? ""}
@@ -111,7 +134,9 @@ function DuzenlenebilirSecim({
           ))}
         </select>
       ) : (
-        <p className="mt-1 text-sm font-semibold text-zinc-900">{value || "—"}</p>
+        <p className="mt-1 text-sm font-semibold text-zinc-900">
+          {value || "—"}
+        </p>
       )}
     </div>
   );
@@ -126,6 +151,8 @@ export function EgitmenDetayIcerik({
 }) {
   const [duzenle, setDuzenle] = useState(false);
   const [taslak, setTaslak] = useState(aday);
+  const { currentUser } = useCurrentUser();
+  const ik = ikYetkisiVarMi(currentUser.rol);
 
   const duzenlemeyeBasla = () => {
     setTaslak(aday);
@@ -148,10 +175,16 @@ export function EgitmenDetayIcerik({
     .sort((a, b) => b.donem.localeCompare(a.donem))[0];
   const karneHaric = karneHaricSebebi(aday, haricKayitlari);
   const karneLigi = sonKarne
-    ? efektifLig(aday.id, sonKarne.finalPuan, haricKayitlari, sabitlemeKayitlari)
+    ? efektifLig(
+        aday.id,
+        sonKarne.finalPuan,
+        haricKayitlari,
+        sabitlemeKayitlari,
+      )
     : null;
   const grid = "grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2";
-  const altBaslik = "mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400";
+  const altBaslik =
+    "mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400";
   // Mülakat Formu'ndan gelen alanlar canlı eğitmende değiştirilemez (form da salt okunurdur).
   const mulakatFormuKilitli = aday.surecDurumu === "egitmen";
   const mulakatAlaniDuzenle = duzenle && !mulakatFormuKilitli;
@@ -163,7 +196,8 @@ export function EgitmenDetayIcerik({
         aksiyon={
           duzenle && mulakatFormuKilitli ? (
             <span className="text-xs text-zinc-400">
-              Mülakat Formu&apos;ndan gelen alanlar canlı eğitmende değiştirilemez.
+              Mülakat Formu&apos;ndan gelen alanlar canlı eğitmende
+              değiştirilemez.
             </span>
           ) : !duzenle && onAdayGuncelle ? (
             <button
@@ -183,9 +217,17 @@ export function EgitmenDetayIcerik({
             <DuzenlenebilirSecim
               label="Federasyon Durumu"
               value={taslak.federasyonKademeDurumu}
-              secenekler={FEDERASYON_KADEME_SECENEKLERI}
+              // KM / KMY adayda yalnızca "belgem var" durumlarını seçer; canlı eğitmende hepsi.
+              secenekler={federasyonDurumuSecenekleri(
+                ik ||
+                  aday.surecDurumu === "egitmen" ||
+                  aday.surecDurumu === "pasif",
+                aday.federasyonKademeDurumu,
+              )}
               duzenle={mulakatAlaniDuzenle}
-              onChange={(v) => setTaslak({ ...taslak, federasyonKademeDurumu: v || undefined })}
+              onChange={(v) =>
+                setTaslak({ ...taslak, federasyonKademeDurumu: v || undefined })
+              }
             />
           </div>
           {fitness ? (
@@ -215,7 +257,9 @@ export function EgitmenDetayIcerik({
             value={taslak.tcKimlikNo}
             goster={aday.tcKimlikNo}
             duzenle={mulakatAlaniDuzenle}
-            onChange={(v) => setTaslak({ ...taslak, tcKimlikNo: v || undefined })}
+            onChange={(v) =>
+              setTaslak({ ...taslak, tcKimlikNo: v || undefined })
+            }
           />
           <DuzenlenebilirMetin
             label="Doğum Tarihi"
@@ -223,7 +267,9 @@ export function EgitmenDetayIcerik({
             value={taslak.dogumTarihi}
             goster={aday.dogumTarihi}
             duzenle={duzenle}
-            onChange={(v) => setTaslak({ ...taslak, dogumTarihi: v || undefined })}
+            onChange={(v) =>
+              setTaslak({ ...taslak, dogumTarihi: v || undefined })
+            }
           />
           <DuzenlenebilirSecim
             label="Cinsiyet"
@@ -241,12 +287,24 @@ export function EgitmenDetayIcerik({
           <Alan label="E-posta">{aday.eposta || "—"}</Alan>
         </div>
 
-        <h4 className={`${altBaslik} mt-6 border-t border-zinc-100 pt-5`}>Sözleşme ve Akademi</h4>
+        <h4 className={`${altBaslik} mt-6 border-t border-zinc-100 pt-5`}>
+          Sözleşme ve Akademi
+        </h4>
         <div className={grid}>
           <DuzenlenebilirSecim
             label="Sözleşme Tipi"
             value={taslak.istihdamTipi}
-            secenekler={[...ISTIHDAM_TIPLERI]}
+            secenekler={
+              ik
+                ? [...ISTIHDAM_TIPLERI]
+                : // İK'nın atadığı mevcut değer (ör. Grup Ders Eğitmeni) düzenlemede kaybolmasın.
+                  [
+                    ...new Set([
+                      ...KULUP_SOZLESME_TIPLERI,
+                      ...(aday.istihdamTipi ? [aday.istihdamTipi] : []),
+                    ]),
+                  ]
+            }
             duzenle={duzenle}
             onChange={(v) =>
               setTaslak({
@@ -255,13 +313,18 @@ export function EgitmenDetayIcerik({
               })
             }
           />
-          <DuzenlenebilirSecim
-            label="Alt Sözleşme Tipi"
-            value={taslak.altSozlesmeTipi}
-            secenekler={ALT_SOZLESME_TIPLERI}
-            duzenle={duzenle}
-            onChange={(v) => setTaslak({ ...taslak, altSozlesmeTipi: v || undefined })}
-          />
+          {/* Alt sözleşme tipi yalnızca İK'da görünür ve seçilir. */}
+          {ik && (
+            <DuzenlenebilirSecim
+              label="Alt Sözleşme Tipi"
+              value={taslak.altSozlesmeTipi}
+              secenekler={ALT_SOZLESME_TIPLERI}
+              duzenle={duzenle}
+              onChange={(v) =>
+                setTaslak({ ...taslak, altSozlesmeTipi: v || undefined })
+              }
+            />
+          )}
           <Alan label="Branş (Flyby)">{aday.sozlesmeTipi ?? "—"}</Alan>
           <DuzenlenebilirSecim
             label="Akademi Tipi"
@@ -271,14 +334,19 @@ export function EgitmenDetayIcerik({
             onChange={(v) =>
               setTaslak({
                 ...taslak,
-                akademiMulakatTipi: (v as AdayEgitmen["akademiMulakatTipi"]) || undefined,
+                akademiMulakatTipi:
+                  (v as AdayEgitmen["akademiMulakatTipi"]) || undefined,
               })
             }
           />
-          <Alan label="Akademi Başlangıç Tarihi">{aday.yonlendirilecekAkademiTarihi || "—"}</Alan>
+          <Alan label="Akademi Başlangıç Tarihi">
+            {aday.yonlendirilecekAkademiTarihi || "—"}
+          </Alan>
           {/* Bitiş tarihi yalnızca canlı eğitmende; diğer aşamalarda sadece başlangıç gösterilir. */}
           {aday.surecDurumu === "egitmen" && (
-            <Alan label="Akademi Bitiş Tarihi">{akademiDonemi?.bitisTarihi || "—"}</Alan>
+            <Alan label="Akademi Bitiş Tarihi">
+              {akademiDonemi?.bitisTarihi || "—"}
+            </Alan>
           )}
           {aday.surecDurumu === "egitmen" && (
             <Alan label="Eğitmen Karne Statüsü">
@@ -303,7 +371,9 @@ export function EgitmenDetayIcerik({
             </Alan>
           )}
         </div>
-        <h4 className={`${altBaslik} mt-6 border-t border-zinc-100 pt-5`}>Mesleki</h4>
+        <h4 className={`${altBaslik} mt-6 border-t border-zinc-100 pt-5`}>
+          Mesleki
+        </h4>
         <div className={grid}>
           <Alan label="Görev Alacağı Kulüp">{aday.kulup}</Alan>
           <DuzenlenebilirMetin
@@ -311,14 +381,18 @@ export function EgitmenDetayIcerik({
             value={taslak.macCampusId}
             goster={aday.macCampusId}
             duzenle={duzenle}
-            onChange={(v) => setTaslak({ ...taslak, macCampusId: v || undefined })}
+            onChange={(v) =>
+              setTaslak({ ...taslak, macCampusId: v || undefined })
+            }
           />
           <DuzenlenebilirSecim
             label="Öğrenim Durumu"
             value={taslak.egitimBilgisi}
             secenekler={EGITIM_BILGISI_SECENEKLERI}
             duzenle={mulakatAlaniDuzenle}
-            onChange={(v) => setTaslak({ ...taslak, egitimBilgisi: v || undefined })}
+            onChange={(v) =>
+              setTaslak({ ...taslak, egitimBilgisi: v || undefined })
+            }
           />
           <DuzenlenebilirMetin
             label="Mezuniyet Tarihi"
@@ -326,9 +400,13 @@ export function EgitmenDetayIcerik({
             value={taslak.mezuniyetTarihi}
             goster={aday.mezuniyetTarihi}
             duzenle={duzenle}
-            onChange={(v) => setTaslak({ ...taslak, mezuniyetTarihi: v || undefined })}
+            onChange={(v) =>
+              setTaslak({ ...taslak, mezuniyetTarihi: v || undefined })
+            }
           />
-          <Alan label="Antrenörlük Geçmişi">{aday.antrenorlukGecmisiVarMi || "—"}</Alan>
+          <Alan label="Antrenörlük Geçmişi">
+            {aday.antrenorlukGecmisiVarMi || "—"}
+          </Alan>
         </div>
       </Bolum>
 
@@ -353,7 +431,9 @@ export function EgitmenDetayIcerik({
             value={taslak.ayakkabiNo}
             secenekler={AYAKKABI_NUMARALARI}
             duzenle={duzenle}
-            onChange={(v) => setTaslak({ ...taslak, ayakkabiNo: v || undefined })}
+            onChange={(v) =>
+              setTaslak({ ...taslak, ayakkabiNo: v || undefined })
+            }
           />
         </div>
       </Bolum>

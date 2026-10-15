@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, Award, BarChart3, LayoutGrid, School, UserPlus } from "lucide-react";
+import { SertifikaDashboard } from "@/components/anasayfa/SertifikaDashboard";
+import {
+  ArrowRight,
+  Award,
+  BarChart3,
+  LayoutGrid,
+  School,
+  UserPlus,
+} from "lucide-react";
 
 export default function AnasayfaPage() {
   // Sıra yan menüyle aynı.
@@ -38,6 +46,7 @@ export default function AnasayfaPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <SertifikaDashboard />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {kartlar.map((k) => {
           const Icon = k.icon;

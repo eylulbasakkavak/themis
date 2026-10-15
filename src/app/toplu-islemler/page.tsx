@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BookOpen,
   ClipboardCheck,
   FileText,
   GraduationCap,
@@ -42,16 +41,6 @@ const ISLEMLER: Islem[] = [
     icon: ClipboardCheck,
     href: "/toplu-islemler/mulakat-sonucu",
     etiket: "Tablo · Mülakat tarihi bazlı",
-  },
-  {
-    id: "temel-egitim-sonucu",
-    kategori: "Aday & Eğitmen",
-    baslik: "Toplu Temel Eğitim Sonucu Gir",
-    aciklama:
-      "Anadolu Üniversitesi temel eğitim sınavı sonuçlarını ders bazında tablo üzerinde girin; sonuç ve kaldığı ders sayısı otomatik hesaplanır.",
-    icon: BookOpen,
-    href: "/toplu-islemler/temel-egitim-sonucu",
-    etiket: "Tablo · Eğitmen bazlı",
   },
   {
     id: "akademi-sinav-sonucu",

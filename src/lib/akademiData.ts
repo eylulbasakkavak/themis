@@ -39,6 +39,10 @@ export const AKADEMI_TANIMLARI = {
     baslangicTarihi: "28.09.2026",
     bitisTarihi: "23.10.2026",
     kontenjan: 30,
+    // Devam eden akademi: ilk gün yoklaması alınmış, günlük yoklamalar sürüyor.
+    yoklamaAlindi: true,
+    yoklamaAlan: "Elif Su (İK)",
+    yoklamaTarihi: "28.09.2026",
   },
   d12k: {
     id: "d12k",
@@ -88,7 +92,7 @@ function gecmisAkademilerUret(
   tip: AkademiTanimi["tip"],
   adet: number,
   ilkPazartesi: Date,
-  onEk: string
+  onEk: string,
 ): AkademiTanimi[] {
   const kisa = tip.startsWith("Kısa");
   return Array.from({ length: adet }, (_, i) => {
@@ -109,8 +113,18 @@ function gecmisAkademilerUret(
 }
 
 export const GECMIS_AKADEMILER: AkademiTanimi[] = [
-  ...gecmisAkademilerUret("Standart Akademi Mülakatı (4 Hafta)", 17, new Date(2020, 9, 5), "gs"),
-  ...gecmisAkademilerUret("Kısa Dönem Akademi Mülakatı (1 Hafta)", 10, new Date(2023, 2, 6), "gk"),
+  ...gecmisAkademilerUret(
+    "Standart Akademi Mülakatı (4 Hafta)",
+    17,
+    new Date(2020, 9, 5),
+    "gs",
+  ),
+  ...gecmisAkademilerUret(
+    "Kısa Dönem Akademi Mülakatı (1 Hafta)",
+    10,
+    new Date(2023, 2, 6),
+    "gk",
+  ),
 ];
 
 /** Uygulamadaki tüm akademiler: geçmiş dönemler + güncel / yaklaşan dönemler. */

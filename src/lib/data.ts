@@ -7,8 +7,16 @@ import {
   sentetikEgitmenlerUret,
   themisIdUret,
 } from "./egitmenUret";
-import { ALT_SOZLESME_TIPLERI, EGITIM_BILGISI_SECENEKLERI } from "./egitmenSecenekleri";
-import { TEMEL_EGITIM_DERSLERI } from "./sertifika";
+import {
+  ALT_SOZLESME_TIPLERI,
+  EGITIM_BILGISI_SECENEKLERI,
+} from "./egitmenSecenekleri";
+import {
+  bransTanimi,
+  gecisSarti,
+  seminerVizeleriniGuncelle,
+  TEMEL_EGITIM_DERSLERI,
+} from "./sertifika";
 import {
   adlariTeklestir,
   akademiBittiMi,
@@ -16,7 +24,19 @@ import {
   ornekSinavDurumu,
 } from "./veriTutarliligi";
 import { IHTAR_KATEGORILERI } from "./types";
-import type { AdayEgitmen, EgitmenSertifikasi, TemelEgitimSonucu } from "./types";
+import {
+  egitimHaklari,
+  gecerliMi,
+  SPOR_BILIMLERI_BOLUMLERI,
+} from "./temelEgitim";
+import type {
+  AdayEgitmen,
+  EgitmenSertifikasi,
+  GelisimSemineri,
+  SozlesmeKaydi,
+  SporEgitimi,
+  TemelEgitimSonucu,
+} from "./types";
 
 const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
   {
@@ -43,7 +63,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
       { ad: "Fiziki Oryantasyon Formu", durum: "yuklenmedi" },
     ],
     aksiyonGecmisi: [
-      { tarih: "10.08.2026", aksiyon: "Dijital üyelik açıldı", yapan: "Ahmet Yıldız (kendisi)" },
+      {
+        tarih: "10.08.2026",
+        aksiyon: "Dijital üyelik açıldı",
+        yapan: "Ahmet Yıldız (kendisi)",
+      },
       {
         tarih: "12.08.2026",
         aksiyon: "Akademi eğitimine davet edildi",
@@ -66,7 +90,8 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     isDeneyimi: "3 yıl özel pilates stüdyosunda eğitmenlik",
     cinsiyet: "Kadın",
     egitimBilgisi: "Lisans - Alan Dışı Bölüm (Mezun)",
-    federasyonKademeDurumu: "1. Kademe belgem yok. 1. Kademe temel eğitimim de yok.",
+    federasyonKademeDurumu:
+      "1. Kademe belgem yok. 1. Kademe temel eğitimim de yok.",
     antrenorlukGecmisiVarMi: "Evet",
     antrenorlukGecmisiDetay: "3 yıl özel pilates stüdyosunda enstrüktörlük",
     akademiMulakatTipi: "Standart Akademi Mülakatı (4 Hafta)",
@@ -80,8 +105,16 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
       { ad: "Fiziki Oryantasyon Formu", durum: "yuklenmedi" },
     ],
     aksiyonGecmisi: [
-      { tarih: "05.08.2026", aksiyon: "Dijital üyelik açıldı", yapan: "Zeynep Kaya (kendisi)" },
-      { tarih: "09.08.2026", aksiyon: "Akademi eğitimine davet edildi", yapan: "Elif Su (İK)" },
+      {
+        tarih: "05.08.2026",
+        aksiyon: "Dijital üyelik açıldı",
+        yapan: "Zeynep Kaya (kendisi)",
+      },
+      {
+        tarih: "09.08.2026",
+        aksiyon: "Akademi eğitimine davet edildi",
+        yapan: "Elif Su (İK)",
+      },
       {
         tarih: "09.08.2026",
         aksiyon: "Mülakat Formu yüklendi ve otonom onaylandı",
@@ -106,7 +139,8 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     egitimBilgisi: "Lisans - Spor Bilimleri Fakültesi veya Besyo (Mezun)",
     federasyonKademeDurumu: "2. Kademe belgem var.",
     antrenorlukGecmisiVarMi: "Evet",
-    antrenorlukGecmisiDetay: "5 yıl eskrim antrenörlüğü, 4 yıl özel akademi eğitmenliği",
+    antrenorlukGecmisiDetay:
+      "5 yıl eskrim antrenörlüğü, 4 yıl özel akademi eğitmenliği",
     akademiMulakatTipi: "Kısa Dönem Akademi Mülakatı (1 Hafta)",
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "03.08.2026" },
@@ -119,13 +153,21 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
       { ad: "Fiziki Oryantasyon Formu", durum: "yuklenmedi" },
     ],
     aksiyonGecmisi: [
-      { tarih: "28.07.2026", aksiyon: "Dijital üyelik açıldı", yapan: "Murat Çelik (kendisi)" },
+      {
+        tarih: "28.07.2026",
+        aksiyon: "Dijital üyelik açıldı",
+        yapan: "Murat Çelik (kendisi)",
+      },
       {
         tarih: "01.08.2026",
         aksiyon: "Akademi eğitimine davet edildi",
         yapan: "Barış Ç. (Kulüp Müdürü)",
       },
-      { tarih: "03.08.2026", aksiyon: "3 belge yüklendi", yapan: "Barış Ç. (Kulüp Müdürü)" },
+      {
+        tarih: "03.08.2026",
+        aksiyon: "3 belge yüklendi",
+        yapan: "Barış Ç. (Kulüp Müdürü)",
+      },
     ],
   },
   {
@@ -148,11 +190,17 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     isDeneyimi: "2 yıl belediye spor okulu eğitmenliği",
     cinsiyet: "Kadın",
     egitimBilgisi: "Ön Lisans - Spor Bilimleri Bölümleri (Mezun)",
-    federasyonKademeDurumu: "1. Kademe belgem var. 2. Kademe temel eğitimim yok.",
+    federasyonKademeDurumu:
+      "1. Kademe belgem var. 2. Kademe temel eğitimim yok.",
     antrenorlukGecmisiVarMi: "Evet",
-    antrenorlukGecmisiDetay: "6 yıl yüzme antrenörlüğü, cankurtaranlık sertifikası",
+    antrenorlukGecmisiDetay:
+      "6 yıl yüzme antrenörlüğü, cankurtaranlık sertifikası",
     akademiMulakatTipi: "Standart Akademi Mülakatı (4 Hafta)",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "25.07.2026" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "25.07.2026",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "20.07.2026" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "20.07.2026" },
@@ -160,21 +208,37 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "24.07.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "24.07.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "25.07.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "25.07.2026",
+      },
     ],
     ayakkabiNo: "38",
     beden: "M",
     ustBeden: "M",
     altBeden: "M",
     aksiyonGecmisi: [
-      { tarih: "18.07.2026", aksiyon: "Dijital üyelik açıldı", yapan: "Elif Şahin (kendisi)" },
-      { tarih: "20.07.2026", aksiyon: "Akademi eğitimine davet edildi", yapan: "Elif Su (İK)" },
+      {
+        tarih: "18.07.2026",
+        aksiyon: "Dijital üyelik açıldı",
+        yapan: "Elif Şahin (kendisi)",
+      },
+      {
+        tarih: "20.07.2026",
+        aksiyon: "Akademi eğitimine davet edildi",
+        yapan: "Elif Su (İK)",
+      },
       {
         tarih: "20.07.2026",
         aksiyon: "İlk belge seti yüklendi, otonom onaylandı",
         yapan: "Elif Su (İK)",
       },
-      { tarih: "25.07.2026", aksiyon: "İkinci belge seti onaylandı", yapan: "Elif Su (İK)" },
+      {
+        tarih: "25.07.2026",
+        aksiyon: "İkinci belge seti onaylandı",
+        yapan: "Elif Su (İK)",
+      },
       {
         tarih: "26.07.2026",
         aksiyon:
@@ -209,7 +273,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     antrenorlukGecmisiVarMi: "Evet",
     antrenorlukGecmisiDetay: "10 yıl vücut geliştirme, PT sertifikası",
     akademiMulakatTipi: "Kısa Dönem Akademi Mülakatı (1 Hafta)",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "21.07.2026" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "21.07.2026",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "16.07.2026" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "16.07.2026" },
@@ -218,7 +286,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "20.07.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "20.07.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "21.07.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "21.07.2026",
+      },
     ],
     ikinciBelgeSetiOnaylandi: true,
     ayakkabiNo: "42",
@@ -226,7 +298,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ustBeden: "L",
     altBeden: "L",
     aksiyonGecmisi: [
-      { tarih: "12.07.2026", aksiyon: "Dijital üyelik açıldı", yapan: "Burak Öztürk (kendisi)" },
+      {
+        tarih: "12.07.2026",
+        aksiyon: "Dijital üyelik açıldı",
+        yapan: "Burak Öztürk (kendisi)",
+      },
       {
         tarih: "15.07.2026",
         aksiyon: "Akademi eğitimine davet edildi",
@@ -237,7 +313,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
         aksiyon: "İlk belge seti İK tarafından onaylandı",
         yapan: "Elif Su (İK)",
       },
-      { tarih: "21.07.2026", aksiyon: "İkinci belge seti onaylandı", yapan: "Elif Su (İK)" },
+      {
+        tarih: "21.07.2026",
+        aksiyon: "İkinci belge seti onaylandı",
+        yapan: "Elif Su (İK)",
+      },
       {
         tarih: "22.07.2026",
         aksiyon: "Akademi Eğitmeni sözleşmesi atandı",
@@ -267,7 +347,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     antrenorlukGecmisiVarMi: "Evet",
     antrenorlukGecmisiDetay: "4 yıl reformer pilates enstrüktörlüğü",
     akademiMulakatTipi: "Standart Akademi Mülakatı (4 Hafta)",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "08.06.2026" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "08.06.2026",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "03.06.2026" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "03.06.2026" },
@@ -275,14 +359,22 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "07.06.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "07.06.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "08.06.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "08.06.2026",
+      },
     ],
     ayakkabiNo: "37",
     beden: "S",
     ustBeden: "S",
     altBeden: "S",
     aksiyonGecmisi: [
-      { tarih: "01.06.2026", aksiyon: "Akademi eğitimine davet edildi", yapan: "Elif Su (İK)" },
+      {
+        tarih: "01.06.2026",
+        aksiyon: "Akademi eğitimine davet edildi",
+        yapan: "Elif Su (İK)",
+      },
       {
         tarih: "09.06.2026",
         aksiyon: "Akademi Eğitmeni sözleşmesi atandı",
@@ -316,7 +408,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     antrenorlukGecmisiVarMi: "Evet",
     antrenorlukGecmisiDetay: "6 yıl crossfit antrenörlüğü",
     akademiMulakatTipi: "Kısa Dönem Akademi Mülakatı (1 Hafta)",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "03.06.2026" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "03.06.2026",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "29.05.2026" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "29.05.2026" },
@@ -325,7 +421,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "02.06.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "02.06.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "03.06.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "03.06.2026",
+      },
     ],
     ikinciBelgeSetiOnaylandi: true,
     ayakkabiNo: "43",
@@ -367,11 +467,16 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     isDeneyimi: "2 yıl serbest yoga eğitmenliği",
     cinsiyet: "Kadın",
     egitimBilgisi: "Lisans - Alan Dışı Bölüm (Mezun)",
-    federasyonKademeDurumu: "1. Kademe belgem yok. 1. Kademe temel eğitimim de yok.",
+    federasyonKademeDurumu:
+      "1. Kademe belgem yok. 1. Kademe temel eğitimim de yok.",
     antrenorlukGecmisiVarMi: "Evet",
     antrenorlukGecmisiDetay: "2 yıl serbest yoga eğitmenliği",
     akademiMulakatTipi: "Standart Akademi Mülakatı (4 Hafta)",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "15.06.2026" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "15.06.2026",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "11.06.2026" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "11.06.2026" },
@@ -379,14 +484,22 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "14.06.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "14.06.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "15.06.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "15.06.2026",
+      },
     ],
     ayakkabiNo: "36",
     beden: "S",
     ustBeden: "S",
     altBeden: "S",
     aksiyonGecmisi: [
-      { tarih: "09.06.2026", aksiyon: "Akademi eğitimine davet edildi", yapan: "Elif Su (İK)" },
+      {
+        tarih: "09.06.2026",
+        aksiyon: "Akademi eğitimine davet edildi",
+        yapan: "Elif Su (İK)",
+      },
       {
         tarih: "16.06.2026",
         aksiyon: "Akademi Eğitmeni sözleşmesi atandı",
@@ -422,7 +535,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     antrenorlukGecmisiDetay: "7 yıl özel antrenörlük",
     akademiMulakatTipi: "Kısa Dönem Akademi Mülakatı (1 Hafta)",
     istihdamTipi: "Tam Zamanlı",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "11.03.2026" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "11.03.2026",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "06.03.2026" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "06.03.2026" },
@@ -431,7 +548,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "10.03.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "10.03.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "11.03.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "11.03.2026",
+      },
     ],
     ikinciBelgeSetiOnaylandi: true,
     ayakkabiNo: "39",
@@ -462,7 +583,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
       {
         id: "9-fs1",
         tip: "Pilates Federasyonu",
-        belge: { ad: "Pilates Federasyonu", durum: "yuklendi", tarih: "20.03.2026" },
+        belge: {
+          ad: "Pilates Federasyonu",
+          durum: "yuklendi",
+          tarih: "20.03.2026",
+        },
         onaylandi: true,
         yukleyen: "Aslı Kurt (Kulüp Müdürü)",
         vizeler: [
@@ -491,7 +616,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
       {
         id: "9-fs2",
         tip: "Yoga Federasyonu",
-        belge: { ad: "Yoga Federasyonu", durum: "yuklendi", tarih: "20.03.2026" },
+        belge: {
+          ad: "Yoga Federasyonu",
+          durum: "yuklendi",
+          tarih: "20.03.2026",
+        },
         onaylandi: true,
         yukleyen: "Aslı Kurt (Kulüp Müdürü)",
         vizeler: [
@@ -510,7 +639,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
       {
         id: "9-fs3",
         tip: "Dans Federasyonu",
-        belge: { ad: "Dans Federasyonu", durum: "yuklendi", tarih: "25.03.2026" },
+        belge: {
+          ad: "Dans Federasyonu",
+          durum: "yuklendi",
+          tarih: "25.03.2026",
+        },
         onaylandi: false,
         yukleyen: "Aslı Kurt (Kulüp Müdürü)",
       },
@@ -564,7 +697,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     antrenorlukGecmisiDetay: "5 yıl boks antrenörlüğü",
     akademiMulakatTipi: "Kısa Dönem Akademi Mülakatı (1 Hafta)",
     istihdamTipi: "Yarı Zamanlı",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "23.02.2026" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "23.02.2026",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "19.02.2026" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "19.02.2026" },
@@ -572,7 +709,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "22.02.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "22.02.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "23.02.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "23.02.2026",
+      },
     ],
     ayakkabiNo: "44",
     beden: "L",
@@ -622,7 +763,8 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     isDeneyimi: "Deneyim yok",
     cinsiyet: "Kadın",
     egitimBilgisi: "Lise mezunu",
-    federasyonKademeDurumu: "1. Kademe belgem yok. 1. Kademe temel eğitimim de yok.",
+    federasyonKademeDurumu:
+      "1. Kademe belgem yok. 1. Kademe temel eğitimim de yok.",
     antrenorlukGecmisiVarMi: "Evet",
     antrenorlukGecmisiDetay: "1 yıl zumba eğitmenliği",
     akademiMulakatTipi: "Standart Akademi Mülakatı (4 Hafta)",
@@ -648,7 +790,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
         yapan: "Elif Su (İK)",
         detay: "Görüşme sonucu olumsuz olarak değerlendirildi",
       },
-      { tarih: "03.08.2026", aksiyon: "Aday süreci sonlandırıldı", yapan: "Elif Su (İK)" },
+      {
+        tarih: "03.08.2026",
+        aksiyon: "Aday süreci sonlandırıldı",
+        yapan: "Elif Su (İK)",
+      },
     ],
   },
   {
@@ -796,7 +942,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     antrenorlukGecmisiDetay: "6 yıl futbol altyapı antrenörlüğü",
     akademiMulakatTipi: "Kısa Dönem Akademi Mülakatı (1 Hafta)",
     istihdamTipi: "Tam Zamanlı",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "16.01.2026" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "16.01.2026",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "11.01.2026" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "11.01.2026" },
@@ -805,7 +955,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "15.01.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "15.01.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "16.01.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "16.01.2026",
+      },
     ],
     ikinciBelgeSetiOnaylandi: true,
     ayakkabiNo: "41",
@@ -873,7 +1027,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     istihdamTipi: "Yarı Zamanlı",
     title: "Pilates Eğitmeni",
     sozlesmeTipi: "Pilates",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "10.01.2026" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "10.01.2026",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "06.01.2026" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "06.01.2026" },
@@ -881,7 +1039,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "09.01.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "09.01.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "10.01.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "10.01.2026",
+      },
     ],
     ayakkabiNo: "38",
     beden: "S",
@@ -936,7 +1098,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     antrenorlukGecmisiDetay: "8 yıl crossfit antrenörlüğü",
     akademiMulakatTipi: "Kısa Dönem Akademi Mülakatı (1 Hafta)",
     istihdamTipi: "Kiracı",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "18.12.2025" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "18.12.2025",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "13.12.2025" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "13.12.2025" },
@@ -945,7 +1111,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "17.12.2025" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "17.12.2025" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "18.12.2025" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "18.12.2025",
+      },
     ],
     ikinciBelgeSetiOnaylandi: true,
     ayakkabiNo: "43",
@@ -973,7 +1143,8 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
       },
       {
         tarih: "02.03.2026",
-        aksiyon: "Kiracı Eğitmen statüsüne geçirildi, PGM Eğitmen Self-Employee sözleşmesi atandı",
+        aksiyon:
+          "Kiracı Eğitmen statüsüne geçirildi, PGM Eğitmen Self-Employee sözleşmesi atandı",
         yapan: "Sistem (Themis) — toplu işlem",
       },
     ],
@@ -997,12 +1168,17 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     egitimBilgisi: "Ön Lisans - Spor Bilimleri Bölümleri (Mezun)",
     federasyonKademeDurumu: "2. Kademe belgem var.",
     antrenorlukGecmisiVarMi: "Evet",
-    antrenorlukGecmisiDetay: "6 yıl yüzme antrenörlüğü, cankurtaranlık sertifikası",
+    antrenorlukGecmisiDetay:
+      "6 yıl yüzme antrenörlüğü, cankurtaranlık sertifikası",
     akademiMulakatTipi: "Kısa Dönem Akademi Mülakatı (1 Hafta)",
     istihdamTipi: "Kiracı",
     title: "Yüzme Eğitmeni",
     sozlesmeTipi: "Havuz",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "13.12.2025" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "13.12.2025",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "09.12.2025" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "09.12.2025" },
@@ -1010,7 +1186,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "12.12.2025" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "12.12.2025" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "13.12.2025" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "13.12.2025",
+      },
     ],
     ayakkabiNo: "37",
     beden: "M",
@@ -1037,7 +1217,8 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
       },
       {
         tarih: "26.02.2026",
-        aksiyon: "Kiracı Eğitmen statüsüne geçirildi, PGM Eğitmen Self-Employee sözleşmesi atandı",
+        aksiyon:
+          "Kiracı Eğitmen statüsüne geçirildi, PGM Eğitmen Self-Employee sözleşmesi atandı",
         yapan: "Sistem (Themis) — toplu işlem",
       },
     ],
@@ -1064,7 +1245,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     antrenorlukGecmisiDetay: "9 yıl vücut geliştirme antrenörlüğü",
     akademiMulakatTipi: "Kısa Dönem Akademi Mülakatı (1 Hafta)",
     istihdamTipi: "Tam Zamanlı",
-    vergiLevhasi: { ad: "Vergi Levhası", durum: "yuklendi", tarih: "06.11.2025" },
+    vergiLevhasi: {
+      ad: "Vergi Levhası",
+      durum: "yuklendi",
+      tarih: "06.11.2025",
+    },
     ilkBelgeSeti: [
       { ad: "Mülakat Formu", durum: "yuklendi", tarih: "04.11.2025" },
       { ad: "Aday CV'si", durum: "yuklendi", tarih: "04.11.2025" },
@@ -1073,7 +1258,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "08.11.2025" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "08.11.2025" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "09.11.2025" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "09.11.2025",
+      },
     ],
     ikinciBelgeSetiOnaylandi: true,
     ayakkabiNo: "42",
@@ -1137,12 +1326,20 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "21.08.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "21.08.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "21.08.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "21.08.2026",
+      },
     ],
     ikinciBelgeSetiOnaylandi: true,
     dijitalOryantasyonTamamlandi: true,
     aksiyonGecmisi: [
-      { tarih: "18.08.2026", aksiyon: "Dijital üyelik açıldı", yapan: "Selin Aslan (kendisi)" },
+      {
+        tarih: "18.08.2026",
+        aksiyon: "Dijital üyelik açıldı",
+        yapan: "Selin Aslan (kendisi)",
+      },
       {
         tarih: "20.08.2026",
         aksiyon: "Akademi eğitimine davet edildi",
@@ -1190,11 +1387,19 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "22.08.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "22.08.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "22.08.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "22.08.2026",
+      },
     ],
     dijitalOryantasyonTamamlandi: true,
     aksiyonGecmisi: [
-      { tarih: "19.08.2026", aksiyon: "Dijital üyelik açıldı", yapan: "Kerem Toprak (kendisi)" },
+      {
+        tarih: "19.08.2026",
+        aksiyon: "Dijital üyelik açıldı",
+        yapan: "Kerem Toprak (kendisi)",
+      },
       {
         tarih: "21.08.2026",
         aksiyon: "Akademi eğitimine davet edildi",
@@ -1239,7 +1444,11 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     ikinciBelgeSeti: [
       { ad: "Adli Sicil Belgesi", durum: "yuklendi", tarih: "11.08.2026" },
       { ad: "Öğrenim Durumu Belgesi", durum: "yuklendi", tarih: "11.08.2026" },
-      { ad: "Fiziki Oryantasyon Formu", durum: "yuklendi", tarih: "11.08.2026" },
+      {
+        ad: "Fiziki Oryantasyon Formu",
+        durum: "yuklendi",
+        tarih: "11.08.2026",
+      },
     ],
     ikinciBelgeSetiOnaylandi: true,
     dijitalOryantasyonTamamlandi: true,
@@ -1247,13 +1456,21 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
     mulakatPlanlayanKisi: "Elif Su (İK)",
     mulakatPlanlamaTarihi: "12.08.2026",
     aksiyonGecmisi: [
-      { tarih: "08.08.2026", aksiyon: "Dijital üyelik açıldı", yapan: "Buse Erdem (kendisi)" },
+      {
+        tarih: "08.08.2026",
+        aksiyon: "Dijital üyelik açıldı",
+        yapan: "Buse Erdem (kendisi)",
+      },
       {
         tarih: "10.08.2026",
         aksiyon: "Akademi eğitimine davet edildi",
         yapan: "Mert Aydın (Kulüp Müdürü)",
       },
-      { tarih: "11.08.2026", aksiyon: "Belge seti İK tarafından onaylandı", yapan: "Elif Su (İK)" },
+      {
+        tarih: "11.08.2026",
+        aksiyon: "Belge seti İK tarafından onaylandı",
+        yapan: "Elif Su (İK)",
+      },
       {
         tarih: "12.08.2026",
         aksiyon: "Mülakat 14.08.2026 tarihine planlandı",
@@ -1272,9 +1489,12 @@ const elleGirilenAdaylar: Omit<AdayEgitmen, "themisId">[] = [
  * Akademide olan / akademiyi tamamlamış örnek kayıtların akademisi girilmemişse, akademi
  * tipine uygun örnek bir akademiye atanır (bkz. akademiData).
  */
-function akademiAtamasiTamamla<T extends Omit<AdayEgitmen, "themisId">>(a: T): T {
+function akademiAtamasiTamamla<T extends Omit<AdayEgitmen, "themisId">>(
+  a: T,
+): T {
   const akademideMi =
-    a.surecDurumu === "akademi_egitmeni" || a.surecDurumu === "akademiyi_tamamladi";
+    a.surecDurumu === "akademi_egitmeni" ||
+    a.surecDurumu === "akademiyi_tamamladi";
   if (!akademideMi || a.akademiDonemiId) return a;
   // Kısa dönem → tamamlanmış Dönem 11; akademisi devam eden → Dönem 19; bitiren → Dönem 18.
   const akademi = a.akademiMulakatTipi?.startsWith("Kısa")
@@ -1292,7 +1512,8 @@ function akademiAtamasiTamamla<T extends Omit<AdayEgitmen, "themisId">>(a: T): T
 // Örnek vize bitişleri bugüne göre dağıtılır ki geçmiş / 30 gün içinde bitecek / geçerli
 // durumların hepsi listede görünsün.
 const VIZE_GUN_KAYDIRMALARI = [
-  -5, 140, 210, 300, -2, 95, 180, 260, 12, 120, 330, 160, 6, 240, 3, 200, 75, 45,
+  -5, 140, 210, 300, -2, 95, 180, 260, 12, 120, 330, 160, 6, 240, 3, 200, 75,
+  45,
 ];
 
 /** Örnek vize bitişleri kişiden kişiye değişsin: geçmiş ve yaklaşan günler çeşitlendirilir. */
@@ -1314,7 +1535,10 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
   // Aday ve akademi eğitmenleri: beyan ettikleri kademeye kadar her kademenin onaylı Fitness
   // belgesi (en yükseği geçerli vizeli) ve her kademenin, belgesinden önce geçilmiş temel eğitimi.
   if (a.surecDurumu !== "egitmen" && a.surecDurumu !== "pasif") {
-    const k = Number(a.federasyonKademeDurumu?.match(/^(\d)\. Kademe belgem var/)?.[1]) || 1;
+    const k =
+      Number(
+        a.federasyonKademeDurumu?.match(/^(\d)\. Kademe belgem var/)?.[1],
+      ) || 1;
     const bitis = gunSonra(150 + (i % 150));
     const [g, ay, y] = a.basvuruTarihi.split(".").map(Number);
     const yaz = (d: Date) =>
@@ -1336,7 +1560,11 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
           kademe: j,
           belgeTarihi: tarih,
           onaylandi: true,
-          belge: { ad: `Fitness ${j}. Kademe Belgesi.pdf`, durum: "yuklendi" as const, tarih },
+          belge: {
+            ad: `Fitness ${j}. Kademe Belgesi.pdf`,
+            durum: "yuklendi" as const,
+            tarih,
+          },
           ...(j === k
             ? {
                 vizeDonemi: `${Number(bitis.slice(-4)) - 1}-${bitis.slice(-4)} Sezonu`,
@@ -1355,7 +1583,9 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
             hedefKademe: idx + 1,
             sinavTarihi: tStr,
             sonuc: "Geçti" as const,
-            dersler: Object.fromEntries(TEMEL_EGITIM_DERSLERI.map((d) => [d, "Geçti" as const])),
+            dersler: Object.fromEntries(
+              TEMEL_EGITIM_DERSLERI.map((d) => [d, "Geçti" as const]),
+            ),
             onaylandi: true,
             yukleyen: "Mert Aydın (Kulüp Müdürü)",
             tarih: tStr,
@@ -1373,15 +1603,19 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
   const tarihStr = (d: Date) =>
     `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
   const isGirisOncesi = tarihStr(
-    new Date(isGiris.getFullYear(), isGiris.getMonth(), isGiris.getDate() - 45)
+    new Date(isGiris.getFullYear(), isGiris.getMonth(), isGiris.getDate() - 45),
   );
   const sonraki = (oran: number) =>
-    tarihStr(new Date(isGiris.getTime() + (Date.now() - isGiris.getTime()) * oran));
+    tarihStr(
+      new Date(isGiris.getTime() + (Date.now() - isGiris.getTime()) * oran),
+    );
   const kademe =
-    Number(a.federasyonKademeDurumu?.match(/^(\d)\. Kademe belgem var/)?.[1]) || 1 + (i % 4);
-  const vizeYili = (bitis: string) => `${Number(bitis.slice(-4)) - 1}-${bitis.slice(-4)} Sezonu`;
+    Number(a.federasyonKademeDurumu?.match(/^(\d)\. Kademe belgem var/)?.[1]) ||
+    1 + (i % 4);
+  const vizeYili = (bitis: string) =>
+    `${Number(bitis.slice(-4)) - 1}-${bitis.slice(-4)} Sezonu`;
   const fitnessBitis = gunSonra(
-    vizeKaydirma(VIZE_GUN_KAYDIRMALARI[i % VIZE_GUN_KAYDIRMALARI.length], i)
+    vizeKaydirma(VIZE_GUN_KAYDIRMALARI[i % VIZE_GUN_KAYDIRMALARI.length], i),
   );
   const sertifikalar: EgitmenSertifikasi[] = [
     {
@@ -1396,7 +1630,10 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
   ];
   if (i % 3 === 0) {
     const bitis = gunSonra(
-      vizeKaydirma(VIZE_GUN_KAYDIRMALARI[(i + 5) % VIZE_GUN_KAYDIRMALARI.length], i)
+      vizeKaydirma(
+        VIZE_GUN_KAYDIRMALARI[(i + 5) % VIZE_GUN_KAYDIRMALARI.length],
+        i,
+      ),
     );
     sertifikalar.push({
       id: `${a.id}-pilates`,
@@ -1410,7 +1647,10 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
   }
   if (i % 7 === 3) {
     const bitis = gunSonra(
-      vizeKaydirma(VIZE_GUN_KAYDIRMALARI[(i + 9) % VIZE_GUN_KAYDIRMALARI.length], i)
+      vizeKaydirma(
+        VIZE_GUN_KAYDIRMALARI[(i + 9) % VIZE_GUN_KAYDIRMALARI.length],
+        i,
+      ),
     );
     sertifikalar.push({
       id: `${a.id}-boks`,
@@ -1465,7 +1705,11 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
             id: `${s.id}-vize`,
             donem: s.vizeDonemi ?? "",
             bitisTarihi: s.vizeBitisTarihi,
-            belge: { ad: "Vize Belgesi.pdf", durum: "yuklendi" as const, tarih: s.belgeTarihi },
+            belge: {
+              ad: "Vize Belgesi.pdf",
+              durum: "yuklendi" as const,
+              tarih: s.belgeTarihi,
+            },
             onaylandi: true,
             yukleyen: "Mert Aydın (Kulüp Müdürü)",
             tarih: s.belgeTarihi,
@@ -1480,7 +1724,7 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
       TEMEL_EGITIM_DERSLERI.map((d, j) => [
         d,
         j < kalanlar ? ("Kaldı" as const) : ("Geçti" as const),
-      ])
+      ]),
     );
   const temelEgitimSonuclari: TemelEgitimSonucu[] = yeniBelgeOnayda
     ? []
@@ -1492,9 +1736,14 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
             hedefKademe: kademe + 1,
             sinavTarihi: "14.06.2026",
             // Geçti / Katılmadı (mazeretli) / Kaldı (1–3 ders) örnekleri.
-            sonuc: i % 12 === 0 ? "Geçti" : i % 12 === 4 ? "Katılmadı" : "Kaldı",
-            dersler: i % 12 === 4 ? {} : dersler(i % 12 === 0 ? 0 : 1 + (i % 3)),
-            mazeret: i % 12 === 4 ? "Sağlık raporu nedeniyle sınava katılamadı" : undefined,
+            sonuc:
+              i % 12 === 0 ? "Geçti" : i % 12 === 4 ? "Katılmadı" : "Kaldı",
+            dersler:
+              i % 12 === 4 ? {} : dersler(i % 12 === 0 ? 0 : 1 + (i % 3)),
+            mazeret:
+              i % 12 === 4
+                ? "Sağlık raporu nedeniyle sınava katılamadı"
+                : undefined,
             onaylandi: true,
             yukleyen: "Mert Aydın (Kulüp Müdürü)",
             tarih: "20.06.2026",
@@ -1515,36 +1764,43 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
             },
           ]
         : [];
-  // Geçmiş temel eğitimler: eğitmen ulaştığı her kademenin temel eğitimini geçmiştir
-  // (3. kademe bir eğitmende 1., 2. ve 3. kademe temel eğitimleri).
-  const enYuksek = new Map<string, number>();
-  for (const s of tamamlanmis.filter((x) => x.onaylandi)) {
-    enYuksek.set(s.brans, Math.max(enYuksek.get(s.brans) ?? 0, s.kademe));
-  }
-  // Yeni kademe belgesi onaydaysa o kademenin temel eğitimi de geçilmiştir.
-  if (yeniBelgeOnayda) enYuksek.set("Fitness", kademe + 1);
-  // Her temel eğitim, o kademenin belgesinden iki ay önce geçilmiştir (belgesi onayda olan
-  // kademe için ise yakın zamanda).
-  const temelTarihi = (brans: string, kademeNo: number) => {
-    const belge = tamamlanmis.find((x) => x.brans === brans && x.kademe === kademeNo);
+  // Geçmiş temel eğitimler (her biri belgenin branşında): eğitmen ulaştığı en yüksek kademeye kadar her
+  // seviyenin sınavını geçmiştir (muaf olduğu seviyeler egitimVerisiniTamamla'da çıkarılır).
+  const enYuksek = Math.max(
+    0,
+    ...tamamlanmis.filter((x) => x.onaylandi).map((x) => x.kademe),
+    yeniBelgeOnayda ? kademe + 1 : 0,
+  );
+  // Her temel eğitim, o kademenin Fitness belgesinden iki ay önce geçilmiştir (belgesi onayda
+  // olan kademe için ise yakın zamanda).
+  const temelTarihi = (kademeNo: number) => {
+    const belge =
+      tamamlanmis.find((x) => x.brans === "Fitness" && x.kademe === kademeNo) ??
+      tamamlanmis.find((x) => x.kademe === kademeNo);
     if (!belge) return gunSonra(-40);
     const [g, ay, y] = belge.belgeTarihi.split(".").map(Number);
     const d = new Date(y, ay - 3, g);
     return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
   };
-  const gecmisTemel: TemelEgitimSonucu[] = [...enYuksek].flatMap(([brans, enUst]) =>
-    Array.from({ length: enUst }, (_, k) => ({
-      id: `${a.id}-temel-${brans}-${k + 1}`,
-      brans,
-      hedefKademe: k + 1,
-      sinavTarihi: temelTarihi(brans, k + 1),
-      sonuc: "Geçti" as const,
-      dersler: dersler(0),
-      onaylandi: true,
-      yukleyen: "Mert Aydın (Kulüp Müdürü)",
-      tarih: temelTarihi(brans, k + 1),
-    }))
-  );
+  const gecmisTemel: TemelEgitimSonucu[] = Array.from(
+    { length: enYuksek },
+    (_, k) => k + 1,
+  ).map((k) => ({
+    id: `${a.id}-temel-gecmis-${k}`,
+    // Sınav, o seviyenin belgesinin alındığı branş için girilmiştir (Fitness öncelikli).
+    brans:
+      (
+        tamamlanmis.find((x) => x.brans === "Fitness" && x.kademe === k) ??
+        tamamlanmis.find((x) => x.kademe === k)
+      )?.brans ?? "Fitness",
+    hedefKademe: k,
+    sinavTarihi: temelTarihi(k),
+    sonuc: "Geçti" as const,
+    dersler: dersler(0),
+    onaylandi: true,
+    yukleyen: "Mert Aydın (Kulüp Müdürü)",
+    tarih: temelTarihi(k),
+  }));
   // Bazı eğitmenlerin yenilenen vizesi KM tarafından girilmiş, İK onayında (PRD 12.4).
   const vizeBekleyen = i % 13 === 6;
   return {
@@ -1571,7 +1827,7 @@ function sertifikalariTamamla<T extends AdayEgitmen>(a: T, i: number): T {
                   },
                 ],
               }
-            : s
+            : s,
         )
       : tamamlanmis,
     temelEgitimSonuclari: [...gecmisTemel, ...temelEgitimSonuclari],
@@ -1603,7 +1859,9 @@ const tumAdaylar: AdayEgitmen[] = [
   ...akademiKatilimcilariUret(230, 4, AKADEMI_TANIMLARI.d13k),
 ].map((a): AdayEgitmen => {
   if (a.surecDurumu !== "akademi_egitmeni") return a;
-  const sinav = akademiBittiMi(a.akademiDonemiId) ? ornekSinavDurumu(a.id) : null;
+  const sinav = akademiBittiMi(a.akademiDonemiId)
+    ? ornekSinavDurumu(a.id)
+    : null;
   // Bitmiş akademideki adaylar sınav sonucuna göre ilerler: geçenler eğitmenliğe geçişe hazır.
   if (sinav === "Geçti") return { ...a, surecDurumu: "akademiyi_tamamladi" };
   // Dönem 11'de sınavdan kalanların süreci İK tarafından sonlandırılmıştır (PRD 10.1).
@@ -1613,7 +1871,8 @@ const tumAdaylar: AdayEgitmen[] = [
       surecDurumu: "surec_sonlandirildi",
       surecSonlandirma: {
         neden: "Akademi sınavlarından başarısız",
-        aciklama: "Genel sınav sonucu Kaldı; Akademi Eğitmeni sözleşmesi kapatıldı.",
+        aciklama:
+          "Genel sınav sonucu Kaldı; Akademi Eğitmeni sözleşmesi kapatıldı.",
         tarih: "25.09.2026",
         yapan: "Elif Su (İK)",
       },
@@ -1653,12 +1912,24 @@ const tumAdaylar: AdayEgitmen[] = [
   return a;
 });
 
-const ORNEK_UYE_ADLARI = ["Ayşe Kaya", "Murat Demir", "Selin Aksoy", "Can Yıldız", "Ebru Şahin"];
-const ORNEK_IHTAR_SEBEPLERI = ["Derse geç kalma", "Kıyafet kuralına uymama", "Üye şikayeti"];
+const ORNEK_UYE_ADLARI = [
+  "Ayşe Kaya",
+  "Murat Demir",
+  "Selin Aksoy",
+  "Can Yıldız",
+  "Ebru Şahin",
+];
+const ORNEK_IHTAR_SEBEPLERI = [
+  "Derse geç kalma",
+  "Kıyafet kuralına uymama",
+  "Üye şikayeti",
+];
 
 /** Sözleşme tipini içeren bir alt sözleşme tipi; eşleşen yoksa listeden sırayla. */
 function ornekAltSozlesmeTipi(a: AdayEgitmen, i: number): string {
-  const uygunlar = ALT_SOZLESME_TIPLERI.filter((t) => a.istihdamTipi && t.includes(a.istihdamTipi));
+  const uygunlar = ALT_SOZLESME_TIPLERI.filter(
+    (t) => a.istihdamTipi && t.includes(a.istihdamTipi),
+  );
   const liste = uygunlar.length ? uygunlar : ALT_SOZLESME_TIPLERI;
   return liste[i % liste.length];
 }
@@ -1667,14 +1938,72 @@ function ornekAltSozlesmeTipi(a: AdayEgitmen, i: number): string {
  * Raporlama (PRD 14) alanlarının örnek veride boş kalmaması için: TCKN, öğrenim durumu,
  * alt sözleşme tipi, ihtar kayıtları ve eğitmen +1 kullanımı eksikse deterministik örnek değerlerle doldurulur.
  */
+/**
+ * Örnek kira değişiklikleri: bazı aktif eğitmenler aynı kulüpte önce Kiracı / Alt Kiracı olarak
+ * çalışmış, sonra şimdiki sözleşme tipine geçmiştir (Eğitmen İşlemleri → Sözleşme Tipini Değiştir).
+ */
+function kiraDegisikligiEkle(
+  a: AdayEgitmen,
+  i: number,
+): SozlesmeKaydi[] | undefined {
+  const gecmis = a.sozlesmeGecmisi;
+  const aktif = gecmis?.find((s) => s.durum === "Devam Ediyor");
+  if (!gecmis || !aktif || a.surecDurumu !== "egitmen" || i % 6 !== 4)
+    return gecmis;
+  const [g, ay, y] = aktif.baslangicTarihi.split(".").map(Number);
+  const bas = new Date(y, ay - 1, g);
+  const gecis = new Date(bas.getTime() + (Date.now() - bas.getTime()) / 2);
+  if (Date.now() - bas.getTime() < 120 * 24 * 3600 * 1000) return gecmis;
+  const t = `${String(gecis.getDate()).padStart(2, "0")}.${String(gecis.getMonth() + 1).padStart(2, "0")}.${gecis.getFullYear()}`;
+  const onceki = aktif.sozlesmeTipi === "Kiracı" ? "Alt Kiracı" : "Kiracı";
+  return [
+    ...gecmis.filter((s) => s !== aktif),
+    {
+      ...aktif,
+      sozlesmeTipi: onceki,
+      altSozlesmeTipi: undefined,
+      bitisTarihi: t,
+      durum: "Sona Erdi",
+      bitisNedeni: "Sözleşme tipi değişikliği",
+    },
+    { ...aktif, baslangicTarihi: t },
+  ];
+}
+
 function raporAlanlariniTamamla(a: AdayEgitmen, i: number): AdayEgitmen {
   const egitmenMi = a.surecDurumu === "egitmen" || a.surecDurumu === "pasif";
+  // Canlı eğitmen sözleşmeleri: çoğu eğitmende üçü de yüklü; bir kısmında eksik var (İK
+  // henüz yüklememiş). İşe giriş tarihinde yüklenmiş sayılır.
+  const sira = (t: string) => t.split(".").reverse().join("");
+  const isGiris =
+    a.sozlesmeGecmisi
+      ?.map((s) => s.baslangicTarihi)
+      .sort((x, y) => sira(x).localeCompare(sira(y)))[0] ?? gunSonra(-200);
+  const canliEgitmenSozlesmeleri = egitmenMi
+    ? ["Bağımsız Eğitmen Sözleşmesi", "Ticari Şart Formu", "Muvafakatname"].map(
+        (ad, j) => ({
+          ad,
+          ...(i % 5 === 3 && j === 2
+            ? { durum: "yuklenmedi" as const }
+            : i % 9 === 4
+              ? { durum: "yuklenmedi" as const }
+              : { durum: "yuklendi" as const, tarih: isGiris }),
+        }),
+      )
+    : undefined;
   return {
     ...a,
-    tcKimlikNo: a.tcKimlikNo ?? String(10000000000 + ((Number(a.id) * 2654435761) % 89999999999)),
-    altSozlesmeTipi: a.altSozlesmeTipi ?? (egitmenMi ? ornekAltSozlesmeTipi(a, i) : undefined),
+    canliEgitmenSozlesmeleri:
+      a.canliEgitmenSozlesmeleri ?? canliEgitmenSozlesmeleri,
+    sozlesmeGecmisi: kiraDegisikligiEkle(a, i),
+    tcKimlikNo:
+      a.tcKimlikNo ??
+      String(10000000000 + ((Number(a.id) * 2654435761) % 89999999999)),
+    altSozlesmeTipi:
+      a.altSozlesmeTipi ?? (egitmenMi ? ornekAltSozlesmeTipi(a, i) : undefined),
     egitimBilgisi:
-      a.egitimBilgisi ?? EGITIM_BILGISI_SECENEKLERI[i % EGITIM_BILGISI_SECENEKLERI.length],
+      a.egitimBilgisi ??
+      EGITIM_BILGISI_SECENEKLERI[i % EGITIM_BILGISI_SECENEKLERI.length],
     ihtarKayitlari:
       a.ihtarKayitlari ??
       (egitmenMi && i % 6 === 2
@@ -1692,8 +2021,12 @@ function raporAlanlariniTamamla(a: AdayEgitmen, i: number): AdayEgitmen {
                   {
                     id: `${a.id}-ihtar-2`,
                     tarih: gunSonra(-3),
-                    kategori: IHTAR_KATEGORILERI[(i + 1) % IHTAR_KATEGORILERI.length],
-                    sebep: ORNEK_IHTAR_SEBEPLERI[(i + 1) % ORNEK_IHTAR_SEBEPLERI.length],
+                    kategori:
+                      IHTAR_KATEGORILERI[(i + 1) % IHTAR_KATEGORILERI.length],
+                    sebep:
+                      ORNEK_IHTAR_SEBEPLERI[
+                        (i + 1) % ORNEK_IHTAR_SEBEPLERI.length
+                      ],
                     kaydeden: "Mert Aydın (Kulüp Müdürü)",
                     onaylandi: false,
                   },
@@ -1712,12 +2045,514 @@ function raporAlanlariniTamamla(a: AdayEgitmen, i: number): AdayEgitmen {
   };
 }
 
+const ORNEK_KM = "Mert Aydın (Kulüp Müdürü)";
+
+const trTarih = (d: Date) =>
+  `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+const trTarihCoz = (t: string) => {
+  const [g, ay, y] = t.split(".").map(Number);
+  return new Date(y, ay - 1, g);
+};
+
+/**
+ * Öğrenim durumuyla tutarlı spor eğitimi ayrıntısı: spor bilimleri lisans mezunlarının bir kısmı
+ * antrenörlük, diğerleri beden eğitimi / spor yöneticiliği / rekreasyon vb. mezunu; lise
+ * mezunlarının bir kısmı spor lisesi; alan dışı mezunlarda "spor eğitimi yok".
+ */
+function ornekSporEgitimi(a: AdayEgitmen, i: number): SporEgitimi | undefined {
+  const e = a.egitimBilgisi ?? "";
+  const mezun = e.includes("(Mezun)");
+  const yil = new Date().getFullYear();
+  // Mezuniyet: kimisi son 4 yıl içinde (süreli muafiyetler geçerli), kimisi daha eski.
+  const mezuniyetYili = yil - [1, 2, 3, 6, 9, 12][i % 6];
+  const mezuniyetTarihi = `${String(12 + (i % 15)).padStart(2, "0")}.06.${mezuniyetYili}`;
+  let kayit: SporEgitimi | undefined;
+
+  if (mezun && e.startsWith("Lisans - Spor Bilimleri") && i % 2 === 0) {
+    const uzmanlik = ["Fitness", "Fitness", "Pilates", "Fitness", "Boks"][
+      i % 5
+    ];
+    const ek = ["Pilates", "Yoga", "Kick Boks", "Fitness"].filter(
+      (b) => b !== uzmanlik,
+    )[i % 3];
+    kayit = {
+      tur: "antrenorluk",
+      mezuniyetTarihi,
+      uzmanlikBransi: uzmanlik,
+      dersAlinanBranslar:
+        i % 4 === 2 ? [] : [{ brans: ek, donem: 1 + (i % 2) }],
+    };
+  } else if (mezun && e.includes("Spor Bilimleri")) {
+    const dersler = [
+      [{ brans: "Pilates", donem: 2 }],
+      [
+        { brans: "Yoga", donem: 1 },
+        { brans: "Step-Aerobik", donem: 2 },
+      ],
+      [{ brans: "Fitness", donem: 2 }],
+      [{ brans: "Dans Sporları", donem: 1 }],
+    ][i % 4];
+    kayit = {
+      tur: "spor_bilimleri",
+      bolum: e.startsWith("Ön Lisans")
+        ? "Spor Yöneticiliği"
+        : SPOR_BILIMLERI_BOLUMLERI[i % SPOR_BILIMLERI_BOLUMLERI.length],
+      mezuniyetTarihi,
+      dersAlinanBranslar: dersler,
+    };
+  } else if (e === "Lise mezunu" && i % 2 === 0) {
+    kayit = {
+      tur: "spor_lisesi",
+      mezuniyetTarihi: `20.06.${yil - 7 - (i % 5)}`,
+      liseBransi: ["Boks", "Kick Boks", "Dans Sporları"][i % 3],
+    };
+  }
+  // Daha eski spor bilimleri mezunlarının bir kısmı üniversitede uygulamalı ders vermiştir.
+  if (
+    (kayit?.tur === "antrenorluk" || kayit?.tur === "spor_bilimleri") &&
+    i % 7 === 0
+  ) {
+    kayit = {
+      ...kayit,
+      mezuniyetTarihi: `${String(12 + (i % 15)).padStart(2, "0")}.06.${yil - 10}`,
+      ogretimElemani: {
+        brans: kayit.uzmanlikBransi ?? "Fitness",
+        yil: 3 + (i % 4),
+      },
+    };
+  }
+  return kayit;
+}
+
+const bransKodu = (b: string) =>
+  b
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g, "i")
+    .replace(/[^a-z]/g, "");
+
+/** Bir branşta 1…kademe arası onaylı belgeler; en yükseği geçerli vizeli aktif belge. */
+function ornekBransSertifikalari(
+  a: AdayEgitmen,
+  brans: string,
+  kademe: number,
+  i: number,
+): EgitmenSertifikasi[] {
+  const kod = bransKodu(brans);
+  const sonBelgeGunOnce = 120 + ((i * 53 + kod.length * 31) % 700);
+  return Array.from({ length: kademe }, (_, j) => {
+    const k = j + 1;
+    const aktif = k === kademe;
+    const tarih = gunSonra(-sonBelgeGunOnce - (kademe - k) * 430);
+    const vizeBitis = gunSonra(40 + ((i * 37 + kod.length * 17) % 320));
+    const vizeDonemi = `${Number(vizeBitis.slice(-4)) - 1}-${vizeBitis.slice(-4)} Sezonu`;
+    return {
+      id: aktif ? `${a.id}-${kod}` : `${a.id}-${kod}-k${k}`,
+      brans,
+      kademe: k,
+      belgeTarihi: tarih,
+      onaylandi: true,
+      belge: {
+        ad: `${brans} ${k}. Kademe Belgesi.pdf`,
+        durum: "yuklendi" as const,
+        tarih,
+      },
+      yukleyen: ORNEK_KM,
+      ...(aktif
+        ? {
+            vizeDonemi,
+            vizeBitisTarihi: vizeBitis,
+            vizeler: [
+              {
+                id: `${a.id}-${kod}-vize`,
+                donem: vizeDonemi,
+                bitisTarihi: vizeBitis,
+                belge: {
+                  ad: "Vize Belgesi.pdf",
+                  durum: "yuklendi" as const,
+                  tarih,
+                },
+                onaylandi: true,
+                yukleyen: ORNEK_KM,
+                tarih,
+              },
+            ],
+          }
+        : { vizeler: [] }),
+    };
+  });
+}
+
+/**
+ * Sertifika sekmesindeki yeni alanların örnek verisi: spor eğitimi ayrıntısı (muafiyet ve
+ * doğrudan başvuru), Fitness dışındaki branşlar (tüm federasyonlar), gelişim seminerleri ve muaf olunan
+ * seviyelerin sınav kayıtlarının çıkarılması.
+ */
+function egitimVerisiniTamamla(a: AdayEgitmen, i: number): AdayEgitmen {
+  const egitmenMi = a.surecDurumu === "egitmen" || a.surecDurumu === "pasif";
+  const sporEgitimi = a.sporEgitimi ?? ornekSporEgitimi(a, i);
+  const { muafiyetler, kademeHaklari } = egitimHaklari(sporEgitimi);
+
+  // Diğer branşlar: farklı federasyonlardan örnekler. Mezuniyetle doğrudan başvurabildiği
+  // branşta bazıları uygulamalı eğitim + sınavı geçip belgeyi doğrudan o kademeden almıştır.
+  let sertifikalar = [...(a.sertifikalar ?? [])];
+  const ekle = (brans: string, kademe: number) => {
+    if (sertifikalar.some((s) => s.brans === brans)) return;
+    const enUst = bransTanimi(brans)?.kademeSayisi ?? 5;
+    sertifikalar = [
+      ...sertifikalar,
+      ...ornekBransSertifikalari(a, brans, Math.min(kademe, enUst), i),
+    ];
+  };
+  if (egitmenMi) {
+    for (const h of kademeHaklari) {
+      if (h.brans !== "Fitness" && i % 2 === 0) {
+        sertifikalar = [
+          ...sertifikalar,
+          ...ornekBransSertifikalari(a, h.brans, h.kademe, i).filter(
+            (s) => s.kademe === h.kademe,
+          ),
+        ];
+      }
+    }
+    if (i % 5 === 2) ekle("Yoga", 1 + (i % 3));
+    if (i % 8 === 1) ekle("Step-Aerobik", 1 + (i % 2));
+    if (i % 9 === 2) ekle("Kick Boks", 1 + (i % 3));
+    if (i % 11 === 6) ekle("Dans Sporları", 1);
+  }
+
+  // Muaf olunan seviyelerin sınavına girilmemiştir: geçmiş "Geçti" kayıtları çıkarılır.
+  const muafSeviyeler = new Set(
+    muafiyetler
+      .filter(
+        (m) => gecerliMi(m) && (m.brans === null || m.brans === "Fitness"),
+      )
+      .map((m) => m.seviye),
+  );
+  const temelEgitimSonuclari = (a.temelEgitimSonuclari ?? []).filter(
+    (t) =>
+      !(
+        muafSeviyeler.has(t.hedefKademe) &&
+        (t.id.includes("-temel-gecmis-") || t.id.includes("-temel-Fitness-"))
+      ),
+  );
+  // Her kademe belgesinin temel eğitimi tamamlanmış olmalı: o branşta muaf değilse ve o seviyenin
+  // geçilmiş sınavı yoksa, belgeden iki ay önce geçilmiş bir sınav eklenir (sonradan eklenen
+  // branş belgeleri için).
+  for (const sert of sertifikalar
+    .filter((x) => x.onaylandi)
+    .sort((x, y) => x.kademe - y.kademe)) {
+    for (let k = 1; k <= sert.kademe; k++) {
+      const muaf = muafiyetler.some(
+        (m) =>
+          m.seviye === k &&
+          gecerliMi(m) &&
+          (m.brans === null || m.brans === sert.brans),
+      );
+      const belge =
+        sertifikalar.find((x) => x.brans === sert.brans && x.kademe === k) ??
+        sert;
+      const d = trTarihCoz(belge.belgeTarihi);
+      // Sınav, belgeden önceki 4 yıl içinde geçilmiş olmalı (temel eğitim 4 yıl geçerli).
+      const gecti = temelEgitimSonuclari.some((t) => {
+        const st = trTarihCoz(t.sinavTarihi);
+        const bitis = new Date(
+          st.getFullYear() + 4,
+          st.getMonth(),
+          st.getDate(),
+        );
+        // Her branşın temel eğitimi ayrıdır: yalnızca bu branşın sınavı sayılır.
+        return (
+          (t.brans ?? "Fitness") === sert.brans &&
+          t.hedefKademe === k &&
+          t.onaylandi &&
+          t.sonuc === "Geçti" &&
+          st <= d &&
+          d <= bitis
+        );
+      });
+      if (muaf || gecti) continue;
+      const sinav = trTarih(
+        new Date(d.getFullYear(), d.getMonth() - 2, d.getDate()),
+      );
+      temelEgitimSonuclari.push({
+        id: `${a.id}-temel-ek-${bransKodu(sert.brans)}-${k}`,
+        brans: sert.brans,
+        hedefKademe: k,
+        sinavTarihi: sinav,
+        sonuc: "Geçti",
+        dersler: Object.fromEntries(
+          TEMEL_EGITIM_DERSLERI.map((d) => [d, "Geçti" as const]),
+        ),
+        onaylandi: true,
+        yukleyen: ORNEK_KM,
+        tarih: sinav,
+      });
+    }
+  }
+  // Süresi dolmuş temel eğitim: bir üst seviyenin sınavını 4 yıldan önce geçmiş ama federasyonun
+  // uygulamalı eğitimine başvurmamış; sınav artık sayılmaz, yeniden alınmalı.
+  const fitnessKademe = Math.max(
+    0,
+    ...sertifikalar
+      .filter((s) => s.brans === "Fitness" && s.onaylandi)
+      .map((s) => s.kademe),
+  );
+  const sonrakiSeviye = fitnessKademe + 1;
+  if (
+    egitmenMi &&
+    i % 10 === 8 &&
+    sonrakiSeviye <= 5 &&
+    !muafSeviyeler.has(sonrakiSeviye) &&
+    !temelEgitimSonuclari.some((t) => t.hedefKademe === sonrakiSeviye)
+  ) {
+    const sinav = gunSonra(-(4 * 365 + 40 + (i % 300)));
+    temelEgitimSonuclari.push({
+      id: `${a.id}-temel-suresi-dolmus`,
+      brans: "Fitness",
+      hedefKademe: sonrakiSeviye,
+      sinavTarihi: sinav,
+      sonuc: "Geçti",
+      dersler: Object.fromEntries(
+        TEMEL_EGITIM_DERSLERI.map((d) => [d, "Geçti" as const]),
+      ),
+      onaylandi: true,
+      yukleyen: ORNEK_KM,
+      tarih: sinav,
+    });
+  }
+  // Bir üst kademenin temel eğitimini geçmiş eğitmen seminerlerini de tamamlamıştır.
+  const temelGectigi = new Set(
+    temelEgitimSonuclari
+      .filter((t) => t.onaylandi && t.sonuc === "Geçti")
+      .map((t) => t.hedefKademe),
+  );
+
+  // Gelişim seminerleri: her aktif belgeden sonra; kimisinde hiç yok, kimisinde eksik, kimisinde
+  // tamam, kimisinde sonuncusu İK onayında.
+  const bugunMs = Date.now();
+  const gelisimSeminerleri: GelisimSemineri[] =
+    a.gelisimSeminerleri ??
+    sertifikalar
+      .filter((s) => s.onaylandi && !s.id.match(/-k\d$/))
+      .flatMap((s, idx): GelisimSemineri[] => {
+        const aktifMi = !sertifikalar.some(
+          (x) => x.brans === s.brans && x.onaylandi && x.kademe > s.kademe,
+        );
+        const sart = gecisSarti(s.brans, s.kademe + 1);
+        if (!aktifMi || !sart || sart.seminer === 0) return [];
+        const bas = trTarihCoz(s.belgeTarihi).getTime();
+        if (bugunMs - bas < 60 * 24 * 3600 * 1000) return [];
+        const desen = (i + idx) % 4;
+        const adet = temelGectigi.has(s.kademe + 1)
+          ? sart.seminer
+          : [0, 1, sart.seminer, sart.seminer][desen];
+        const tanim = bransTanimi(s.brans);
+        const unvan = tanim?.kademeSayisi === 3 ? "Eğitmen" : "Antrenör";
+        return Array.from({ length: adet }, (_, j) => {
+          const t = trTarih(
+            new Date(bas + ((bugunMs - bas) * (j + 1)) / (adet + 1)),
+          );
+          const bekliyor = desen === 3 && j === adet - 1 && i % 3 === 0;
+          return {
+            id: `${a.id}-gs-${bransKodu(s.brans)}-${j}`,
+            brans: s.brans,
+            ad: `${t.slice(-4)} ${tanim?.federasyonKisa ?? ""} ${s.brans} ${unvan} Gelişim Semineri`,
+            seminerTarihi: t,
+            belge: {
+              ad: "Seminer Katılım Belgesi.pdf",
+              durum: "yuklendi" as const,
+              tarih: t,
+            },
+            onaylandi: !bekliyor,
+            yukleyen: ORNEK_KM,
+            tarih: bekliyor ? gunSonra(-1 - (i % 5)) : t,
+          };
+        });
+      })
+      .concat(
+        // Reddedilen seminer: katılım belgesi okunmuyor.
+        egitmenMi && i % 17 === 3
+          ? [
+              {
+                id: `${a.id}-gs-red`,
+                brans: "Fitness",
+                ad: "Online Fonksiyonel Antrenman Semineri",
+                seminerTarihi: gunSonra(-20),
+                belge: {
+                  ad: "Katılım Belgesi.jpg",
+                  durum: "yuklendi" as const,
+                  tarih: gunSonra(-20),
+                },
+                onaylandi: false,
+                redSebebi:
+                  "Katılım belgesinde ad-soyad okunmuyor; federasyon onaylı belge yüklenmeli.",
+                yukleyen: ORNEK_KM,
+                tarih: gunSonra(-18),
+              },
+            ]
+          : [],
+      );
+
+  // Vize gelişim seminerinden gelir (son 1 yıl). Örnek vize bitişleri (geçmiş / yaklaşan /
+  // geçerli) korunsun diye her aktif sertifikanın son onaylı semineri vize bitişinden 1 yıl
+  // önceye konur; ondan sonraki onaylı seminerler çıkarılır. Ayrı vize kaydı tutulmaz.
+  let seminerler = gelisimSeminerleri;
+  for (const sert of sertifikalar.filter(
+    (x) =>
+      x.onaylandi &&
+      x.vizeBitisTarihi &&
+      !sertifikalar.some(
+        (y) => y.brans === x.brans && y.onaylandi && y.kademe > x.kademe,
+      ),
+  )) {
+    const b = trTarihCoz(sert.vizeBitisTarihi!);
+    const hedef = new Date(b.getFullYear() - 1, b.getMonth(), b.getDate());
+    if (hedef < trTarihCoz(sert.belgeTarihi)) continue;
+    const t = trTarih(hedef);
+    const tanim = bransTanimi(sert.brans);
+    seminerler = [
+      ...seminerler.filter(
+        (g) =>
+          !(
+            g.brans === sert.brans &&
+            g.onaylandi &&
+            trTarihCoz(g.seminerTarihi) > hedef
+          ),
+      ),
+      {
+        id: `${a.id}-gs-vize-${bransKodu(sert.brans)}`,
+        brans: sert.brans,
+        ad: `${t.slice(-4)} ${tanim?.federasyonKisa ?? ""} ${sert.brans} ${
+          tanim?.kademeSayisi === 3 ? "Eğitmen" : "Antrenör"
+        } Gelişim Semineri`,
+        seminerTarihi: t,
+        belge: {
+          ad: "Seminer Katılım Belgesi.pdf",
+          durum: "yuklendi" as const,
+          tarih: t,
+        },
+        onaylandi: true,
+        yukleyen: ORNEK_KM,
+        tarih: t,
+      },
+    ];
+  }
+
+  // Belgesinin üzerinden 45 günden fazla geçmiş ve o branşta belgeden sonra hiç semineri olmayan
+  // her aktif sertifikaya, belge ile bugün arasında onaylı bir seminer eklenir.
+  const bugunMsSon = Date.now();
+  for (const sert of sertifikalar.filter(
+    (x) =>
+      x.onaylandi &&
+      !sertifikalar.some(
+        (y) => y.brans === x.brans && y.onaylandi && y.kademe > x.kademe,
+      ),
+  )) {
+    const bas = trTarihCoz(sert.belgeTarihi).getTime();
+    const varMi = seminerler.some(
+      (g) =>
+        g.brans === sert.brans && trTarihCoz(g.seminerTarihi).getTime() >= bas,
+    );
+    if (varMi || bugunMsSon - bas < 45 * 24 * 3600 * 1000) continue;
+    const t = trTarih(
+      new Date(bas + (bugunMsSon - bas) * (0.4 + (i % 5) * 0.1)),
+    );
+    const tanim = bransTanimi(sert.brans);
+    seminerler = [
+      ...seminerler,
+      {
+        id: `${a.id}-gs-ek-${bransKodu(sert.brans)}`,
+        brans: sert.brans,
+        ad: `${t.slice(-4)} ${tanim?.federasyonKisa ?? ""} ${sert.brans} ${
+          tanim?.kademeSayisi === 3 ? "Eğitmen" : "Antrenör"
+        } Gelişim Semineri`,
+        seminerTarihi: t,
+        belge: {
+          ad: "Seminer Katılım Belgesi.pdf",
+          durum: "yuklendi" as const,
+          tarih: t,
+        },
+        onaylandi: true,
+        yukleyen: ORNEK_KM,
+        tarih: t,
+      },
+    ];
+  }
+
+  return seminerVizeleriniGuncelle({
+    ...a,
+    // Profildeki genel mezuniyet tarihi beyanla aynı olsun.
+    mezuniyetTarihi: sporEgitimi?.mezuniyetTarihi
+      ? sporEgitimi.mezuniyetTarihi.split(".").reverse().join("-")
+      : a.mezuniyetTarihi,
+    sertifikalar: sertifikalar.map((x) => ({ ...x, vizeler: [] })),
+    temelEgitimSonuclari,
+    gelisimSeminerleri: seminerler,
+    sporEgitimi,
+  });
+}
+
 export const adayEgitmenler: AdayEgitmen[] = adlariTeklestir(
   tumAdaylar
     .map(kaydiTutarliHaleGetir)
     // Onaylı Fitness kademe belgesi olmayan kimse sistemde yer almaz.
     .filter((a) => /Kademe belgem var/.test(a.federasyonKademeDurumu ?? ""))
     .map(sertifikalariTamamla)
-    .map(raporAlanlariniTamamla),
-  SOYADLAR
+    .map(raporAlanlariniTamamla)
+    .map(egitimVerisiniTamamla)
+    .map(federasyonBelgeTarihiTamamla)
+    .map(temelEgitimBelgeleriniTamamla),
+  SOYADLAR,
 );
+
+/**
+ * Temel eğitim sınav sonuçları eğitmenin MAC+'tan yüklediği sonuç belgesiyle gelir; ders
+ * sonuçları belgeden okunmuştur. Katılmadı kayıtlarında belge yoktur.
+ */
+function temelEgitimBelgeleriniTamamla(a: AdayEgitmen): AdayEgitmen {
+  if (!a.temelEgitimSonuclari?.length) return a;
+  return {
+    ...a,
+    temelEgitimSonuclari: a.temelEgitimSonuclari.map((t) =>
+      t.kaynak
+        ? t
+        : {
+            ...t,
+            kaynak: "MAC+" as const,
+            yukleyen: `${a.ad} ${a.soyad} (Eğitmen · MAC+)`,
+            belge:
+              t.sonuc === "Katılmadı"
+                ? undefined
+                : {
+                    ad: `Temel Eğitim ${t.hedefKademe}. Kademe Sınav Sonucu.jpg`,
+                    durum: "yuklendi" as const,
+                    tarih: t.tarih,
+                  },
+          },
+    ),
+  };
+}
+
+/**
+ * Mülakat formundaki "Belgenin Alındığı Tarih": beyan edilen kademenin Fitness belgesinin tarihi
+ * (yoksa en eski Fitness belgesi).
+ */
+function federasyonBelgeTarihiTamamla(a: AdayEgitmen): AdayEgitmen {
+  if (a.federasyonBelgeTarihi) return a;
+  const beyan = Number(
+    a.federasyonKademeDurumu?.match(/^(\d)\. Kademe belgem var/)?.[1],
+  );
+  if (!beyan) return a;
+  const fitness = (a.sertifikalar ?? []).filter(
+    (s) => s.brans === "Fitness" && s.onaylandi,
+  );
+  const belge =
+    fitness.find((s) => s.kademe === beyan) ??
+    [...fitness].sort((x, y) => x.kademe - y.kademe)[0];
+  return belge
+    ? {
+        ...a,
+        federasyonBelgeTarihi: belge.belgeTarihi.split(".").reverse().join("-"),
+      }
+    : a;
+}

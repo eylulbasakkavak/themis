@@ -1,17 +1,44 @@
 import type { AdayEgitmen, BelgeDurumu, SurecDurumu } from "./types";
 
 export type Tone =
-  "gray" | "amber" | "orange" | "purple" | "blue" | "green" | "pink" | "red" | "indigo" | "lime";
+  | "gray"
+  | "amber"
+  | "orange"
+  | "purple"
+  | "blue"
+  | "green"
+  | "pink"
+  | "red"
+  | "indigo"
+  | "lime";
 
-export const surecDurumuBilgi: Record<SurecDurumu, { label: string; tone: Tone }> = {
-  ilk_belge_seti_bekleniyor: { label: "Birinci Belge Seti Bekleniyor", tone: "amber" },
-  ikinci_belge_seti_bekleniyor: { label: "İkinci Belge Seti Bekleniyor", tone: "indigo" },
+export const surecDurumuBilgi: Record<
+  SurecDurumu,
+  { label: string; tone: Tone }
+> = {
+  ilk_belge_seti_bekleniyor: {
+    label: "Birinci Belge Seti Bekleniyor",
+    tone: "amber",
+  },
+  ikinci_belge_seti_bekleniyor: {
+    label: "İkinci Belge Seti Bekleniyor",
+    tone: "indigo",
+  },
   mulakat_sonucu_bekleniyor: { label: "Mülakat Planlandı", tone: "blue" },
   mulakata_katilmadi: { label: "Mülakata Katılmadı", tone: "orange" },
-  akademi_egitimine_hazir: { label: "Akademi Daveti / İK Onayı Bekleniyor", tone: "orange" },
-  akademi_daveti_onayi_bekliyor: { label: "Akademi Daveti / İK Onayı Bekleniyor", tone: "orange" },
+  akademi_egitimine_hazir: {
+    label: "Akademi Daveti / İK Onayı Bekleniyor",
+    tone: "orange",
+  },
+  akademi_daveti_onayi_bekliyor: {
+    label: "Akademi Daveti / İK Onayı Bekleniyor",
+    tone: "orange",
+  },
   ik_onayi_bekliyor: { label: "İK Onayı Bekleniyor", tone: "orange" },
-  ileride_degerlendirilebilir: { label: "Yeniden Değerlendirilebilir", tone: "pink" },
+  ileride_degerlendirilebilir: {
+    label: "Yeniden Değerlendirilebilir",
+    tone: "pink",
+  },
   akademi_egitmeni: { label: "Akademide", tone: "blue" },
   akademiyi_tamamladi: { label: "Eğitmenliğe Geçiş Hazır", tone: "green" },
   egitmen: { label: "Eğitmen", tone: "purple" },
@@ -27,9 +54,12 @@ export const surecDurumuBilgi: Record<SurecDurumu, { label: string; tone: Tone }
  * olarak görünür.
  */
 export function surecDurumuGorunumu(
-  a: Pick<AdayEgitmen, "surecDurumu" | "mulakatPlanlananTarihi">
+  a: Pick<AdayEgitmen, "surecDurumu" | "mulakatPlanlananTarihi">,
 ): { label: string; tone: Tone } {
-  if (a.surecDurumu === "mulakat_sonucu_bekleniyor" && !a.mulakatPlanlananTarihi) {
+  if (
+    a.surecDurumu === "mulakat_sonucu_bekleniyor" &&
+    !a.mulakatPlanlananTarihi
+  ) {
     return { label: "Mülakat Planlanacak", tone: "orange" };
   }
   return surecDurumuBilgi[a.surecDurumu];
@@ -42,7 +72,8 @@ export function surecDurumuGorunumu(
  * durumları bu statülerin altında bir detay/alt-etiket olarak gösterilir
  * (bkz. surecDurumuBilgi).
  */
-export type UyelikTipi = "Aday Eğitmen" | "Akademi Eğitmeni" | "Eğitmen" | "Pasif Eğitmen";
+export type UyelikTipi =
+  "Aday Eğitmen" | "Akademi Eğitmeni" | "Eğitmen" | "Pasif Eğitmen";
 
 export const UYELIK_TIPLERI: UyelikTipi[] = [
   "Aday Eğitmen",
@@ -82,7 +113,10 @@ export const uyelikTipiBilgi: Record<UyelikTipi, { tone: Tone }> = {
   "Pasif Eğitmen": { tone: "gray" },
 };
 
-export const belgeDurumuBilgi: Record<BelgeDurumu, { label: string; tone: Tone }> = {
+export const belgeDurumuBilgi: Record<
+  BelgeDurumu,
+  { label: string; tone: Tone }
+> = {
   yuklenmedi: { label: "Yüklenmedi", tone: "gray" },
   yuklendi: { label: "Yüklendi", tone: "blue" },
 };

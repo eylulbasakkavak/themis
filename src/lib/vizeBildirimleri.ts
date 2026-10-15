@@ -16,7 +16,7 @@ function tarihYaz(d: Date): string {
  */
 export function vizeBildirimleriUret(
   adaylar: AdayEgitmen[],
-  alicilar: { rol: MulakatRolu; ad: string }[]
+  alicilar: { rol: MulakatRolu; ad: string }[],
 ): Omit<Bildirim, "okundu">[] {
   const liste: { bildirim: Omit<Bildirim, "okundu">; sira: number }[] = [];
   for (const a of adaylar) {
@@ -28,7 +28,9 @@ export function vizeBildirimleriUret(
       const gercekEsik = kalan <= 0 ? 0 : kalan <= 7 ? 7 : 30;
       const bitis = s.vizeBitisTarihi!;
       const [g, ay, y] = bitis.split(".").map(Number);
-      const tetik = new Date(new Date(y, ay - 1, g).getTime() - gercekEsik * GUN);
+      const tetik = new Date(
+        new Date(y, ay - 1, g).getTime() - gercekEsik * GUN,
+      );
       const adSoyad = `${a.ad} ${a.soyad}`;
       const baslik =
         gercekEsik === 0
@@ -37,7 +39,7 @@ export function vizeBildirimleriUret(
       const mesaj =
         gercekEsik === 0
           ? `${a.kulup} · ${s.brans} ${s.kademe}. Kademe vizesi ${bitis} tarihinde sona erdi; sertifika "Vizesi Geçmiş" durumuna düştü.`
-          : `${a.kulup} · ${s.brans} ${s.kademe}. Kademe vizesi ${bitis} tarihinde bitiyor. Yeni vize bilgisi girilip İK tarafından onaylandığında uyarı kalkar.`;
+          : `${a.kulup} · ${s.brans} ${s.kademe}. Kademe vizesi ${bitis} tarihinde bitiyor. Yeni gelişim semineri girilip İK tarafından onaylandığında uyarı kalkar.`;
       for (const alici of alicilar) {
         liste.push({
           sira: tetik.getTime(),
